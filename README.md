@@ -7,7 +7,7 @@ StashTrack is a JUCE audio plug-in that lets you paste a YouTube or other yt-dlp
 Publisher: N9 Records
 Website: https://stashtrack.n9records.com
 Support: vsts@n9records.com
-Version: v0.3
+Version: v0.4
 Copyright: Copyright (c) 2026 N9 Records
 License: StashTrack Non-Commercial License v0.1. Free to use, copy, modify, and share for non-commercial purposes only. No commercial use or profit is allowed.
 
@@ -19,32 +19,33 @@ Downloading YouTube or other website content may violate that site's Terms of Se
 
 ## Runtime Dependencies
 
-The plug-in shells out to the same class of tools used behind the scenes by Stacher7, but yt-dlp is now launched through `uvx` instead of a direct Python/yt-dlp executable. This avoids host-side Python environment issues like `Fatal Python error: init_fs_encoding`.
+The plug-in shells out to the same class of tools used behind the scenes by Stacher7. The Windows `.exe` installer now bundles and launches `yt-dlp.exe` directly so a fresh PC does not depend on Python or on whatever `yt-dlp` version `uvx` happens to resolve.
 
+- `yt-dlp`
 - `uv` / `uvx`
 - `ffmpeg`
 - `deno` for modern YouTube JavaScript challenge solving
 
-The installer copies `uv.exe` and `uvx.exe` beside the built plug-in binary when it can find them. If uv is missing, the installer downloads uv with Astral's official standalone installer and installs it into the VST3 bundle. On Windows, that bundle location is:
+The installer copies `yt-dlp.exe`, `uv.exe`, and `uvx.exe` beside the built plug-in binary. If uv is missing, the installer downloads uv with Astral's official standalone installer and installs it into the VST3 bundle as a fallback. On Windows, that bundle location is:
 
 ```text
 build-vs/StashTrack_artefacts/Release/VST3/StashTrack.vst3/Contents/x86_64-win/
 ```
 
-`ffmpeg` must still be installed on `PATH`, or copied beside the plug-in binary when using the development install scripts. On Windows, the full `.exe` installer described below bundles `ffmpeg.exe`, `deno.exe`, `uv.exe`, `uvx.exe`, and the Microsoft Visual C++ runtime so a fresh PC does not need Python, uv, deno, or ffmpeg preinstalled.
+`ffmpeg` must still be installed on `PATH`, or copied beside the plug-in binary when using the development install scripts. On Windows, the full `.exe` installer described below bundles `yt-dlp.exe`, `ffmpeg.exe`, `deno.exe`, `uv.exe`, `uvx.exe`, and the Microsoft Visual C++ runtime so a fresh PC does not need Python, uv, deno, yt-dlp, or ffmpeg preinstalled.
 
 The downloader uses a command shaped like this:
 
 ```bash
-uvx --refresh-package yt-dlp --from yt-dlp@latest yt-dlp -f bestaudio -x --audio-format wav --print after_move:filepath --output "<downloadFolder>/%(title)s.%(ext)s" <URL>
+yt-dlp -f bestaudio -x --audio-format wav --print after_move:filepath --output "<downloadFolder>/%(title)s.%(ext)s" <URL>
 ```
 
-The plug-in requests `bestaudio`, then converts to WAV so JUCE's built-in `AudioFormatManager` can reliably load the result. StashTrack forces `uvx` to refresh yt-dlp metadata and run `yt-dlp@latest` so a stale cached yt-dlp build does not break newer YouTube options.
+The plug-in requests `bestaudio`, then converts to WAV so JUCE's built-in `AudioFormatManager` can reliably load the result. StashTrack prefers bundled `yt-dlp.exe`; `uvx --from yt-dlp@latest` remains only as a fallback if the bundled executable is missing.
 
 When `Clip` is enabled, StashTrack prefers segmented m3u8 media before falling back to `bestaudio`:
 
 ```bash
-uvx --refresh-package yt-dlp --from yt-dlp@latest yt-dlp --js-runtimes "deno:<pluginToolsFolder>/deno.exe" --remote-components ejs:npm -f "best[protocol*=m3u8][height<=360]/best[protocol*=m3u8]/bestaudio" --download-sections "*<start>-<end>"
+yt-dlp --js-runtimes "deno:<pluginToolsFolder>/deno.exe" --remote-components ejs:npm -f "best[protocol*=m3u8][height<=360]/best[protocol*=m3u8]/bestaudio" --download-sections "*<start>-<end>"
 ```
 
 This requires ffmpeg. Deno lets yt-dlp solve YouTube's current JavaScript challenges and expose m3u8 segment streams when YouTube provides them. Segment streams are much better for grabbing a short clip from a long video. If a site only exposes a single giant DASH/HTTP audio file, yt-dlp/ffmpeg may still need to scan or download more data because that is a site/format limitation.
@@ -121,13 +122,13 @@ bun run typecheck
 bun run build
 ```
 
-The landing page download buttons point to the v0.3 GitHub Release installer:
+The landing page download buttons point to the v0.4 GitHub Release installer:
 
 ```text
-https://github.com/davad00/StashTrack/releases/download/v0.3/StashTrackv0.3Setup.exe
+https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe
 ```
 
-After rebuilding `dist/StashTrackv0.3Setup.exe`, upload the release asset to GitHub Releases and update `stashtrack-landing/app/page.tsx` if the release URL changes.
+After rebuilding `dist/StashTrackv0.4Setup.exe`, upload the release asset to GitHub Releases and update `stashtrack-landing/app/page.tsx` if the release URL changes.
 
 ## License
 
@@ -163,16 +164,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer/windows/build-inst
 The installer is written to:
 
 ```text
-dist/StashTrackv0.3Setup.exe
+dist/StashTrackv0.4Setup.exe
 ```
 
-`StashTrackv0.3Setup.exe` installs to the standard system VST3 folder:
+`StashTrackv0.4Setup.exe` installs to the standard system VST3 folder:
 
 ```text
 C:\Program Files\Common Files\VST3\StashTrack.vst3
 ```
 
-The installer bundles `uv.exe`, `uvx.exe`, `ffmpeg.exe`, `deno.exe`, and the Microsoft Visual C++ Redistributable x64. The setup checks for the VC++ runtime before running the redistributable. It also removes stale `StashTrack.vst3` copies from system and user-local VST3 folders before installing, so FL Studio is less likely to keep loading an old scanned plug-in. If Inno Setup is not installed on the build machine, the builder downloads Inno Setup 6 locally and uses `ISCC.exe` to compile the installer. The target PC still needs internet access when StashTrack first downloads from a URL because `uvx` fetches/caches yt-dlp and its EJS helper package on demand.
+The installer bundles `yt-dlp.exe`, `uv.exe`, `uvx.exe`, `ffmpeg.exe`, `deno.exe`, and the Microsoft Visual C++ Redistributable x64. The setup checks for the VC++ runtime before running the redistributable. It also removes stale `StashTrack.vst3` copies from system and user-local VST3 folders before installing, so FL Studio is less likely to keep loading an old scanned plug-in. If Inno Setup is not installed on the build machine, the builder downloads Inno Setup 6 locally and uses `ISCC.exe` to compile the installer. The target PC still needs internet access when StashTrack first downloads from a URL because yt-dlp/Deno may fetch YouTube helper components on demand.
 
 For a simple install after building, run:
 
@@ -230,7 +231,7 @@ ctest --test-dir build --output-on-failure
 
 ## Source Layout
 
-- `Source/DownloadUtils.*`: URL validation, uvx/yt-dlp command construction, output parsing, and `ChildProcess` execution.
+- `Source/DownloadUtils.*`: URL validation, yt-dlp command construction, output parsing, and `ChildProcess` execution.
 - `Source/PluginEditor.*`: JUCE GUI with `TextEditor`, `TextButton`, status `Label`, background download thread, message-thread status updates, waveform rendering, and native file drag into the host.
 - `Source/PluginProcessor.*`: silent default processor path with retained JUCE audio-loading helpers for future playback workflows.
 - `Tests/DownloadUtilsTests.cpp`: command/URL/output parsing tests.

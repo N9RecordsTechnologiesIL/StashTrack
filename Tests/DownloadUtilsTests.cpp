@@ -93,7 +93,7 @@ namespace
                 "long YouTube clips should prefer segment streams so yt-dlp can avoid linear DASH seeks where available");
     }
 
-    void commandUsesBundledDenoForYoutubeEjsWhenAvailable()
+    void commandPrefersBundledYtDlpForYoutubeEjsWhenAvailable()
     {
         const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory)
                                 .getChildFile ("StashTrackTests");
@@ -102,6 +102,8 @@ namespace
         toolDirectory.createDirectory();
         toolDirectory.getChildFile ("uvx.exe").replaceWithText ("fake uvx");
         toolDirectory.getChildFile ("uvx").replaceWithText ("fake uvx");
+        toolDirectory.getChildFile ("yt-dlp.exe").replaceWithText ("fake yt-dlp");
+        toolDirectory.getChildFile ("yt-dlp").replaceWithText ("fake yt-dlp");
         toolDirectory.getChildFile ("deno.exe").replaceWithText ("fake deno");
         toolDirectory.getChildFile ("deno").replaceWithText ("fake deno");
 
@@ -116,17 +118,52 @@ namespace
             options,
             toolDirectory);
 
-        expect (command[0].containsIgnoreCase ("uvx"), "command should still launch uvx");
-        expect (command[command.indexOf ("--from") + 1] == "yt-dlp@latest",
-                "bundled Deno should keep uvx on the latest yt-dlp package");
+        expect (command[0].containsIgnoreCase ("yt-dlp"), "bundled yt-dlp.exe should be launched directly");
+        expect (! command.contains ("--from"),
+                "bundled yt-dlp command should not go through uvx package selection");
+        expect (! command.contains ("--refresh-package"),
+                "bundled yt-dlp command should not depend on uvx refresh behavior");
         expect (command.contains ("--js-runtimes"),
-                "bundled Deno should be passed to yt-dlp for YouTube JS challenge solving");
+                "bundled Deno should be passed to bundled yt-dlp for YouTube JS challenge solving");
         expect (command[command.indexOf ("--js-runtimes") + 1].startsWithIgnoreCase ("deno:"),
                 "Deno runtime argument should use yt-dlp's deno:path syntax");
         expect (command.contains ("--remote-components"),
                 "Deno-based YouTube solving should enable yt-dlp's remote EJS component");
         expect (command[command.indexOf ("--remote-components") + 1] == "ejs:npm",
                 "yt-dlp should fetch the EJS solver package through Deno/npm when needed");
+    }
+
+    void uvxFallbackDoesNotUseBundledDenoOnlyOptions()
+    {
+        const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                                .getChildFile ("StashTrackTests");
+        const auto toolDirectory = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                                       .getChildFile ("StashTrackToolFallbackTests");
+        toolDirectory.deleteRecursively();
+        toolDirectory.createDirectory();
+        toolDirectory.getChildFile ("uvx.exe").replaceWithText ("fake uvx");
+        toolDirectory.getChildFile ("uvx").replaceWithText ("fake uvx");
+        toolDirectory.getChildFile ("deno.exe").replaceWithText ("fake deno");
+        toolDirectory.getChildFile ("deno").replaceWithText ("fake deno");
+
+        StashTrack::DownloadOptions options;
+        options.section.enabled = true;
+        options.section.startTime = "25:30";
+        options.section.endTime = "26:00";
+
+        const auto command = StashTrack::buildYtDlpCommand (
+            "https://www.youtube.com/watch?v=WxNNWhOHcsQ",
+            folder,
+            options,
+            toolDirectory);
+
+        expect (command[0].containsIgnoreCase ("uvx"), "uvx should remain the fallback when bundled yt-dlp is missing");
+        expect (command[command.indexOf ("--from") + 1] == "yt-dlp@latest",
+                "uvx fallback should still request the latest yt-dlp package");
+        expect (! command.contains ("--js-runtimes"),
+                "uvx fallback should not pass options that older resolved yt-dlp executables may reject");
+        expect (! command.contains ("--remote-components"),
+                "uvx fallback should not pass yt-dlp EJS options without a bundled yt-dlp executable");
     }
 
     void rejectsEmptyAndNonHttpUrls()
@@ -332,7 +369,8 @@ int main()
     commandContainsExpectedYtDlpOptions();
     commandContainsDownloadSectionWhenRequested();
     longYoutubeClipUsesFfmpegSectionDownload();
-    commandUsesBundledDenoForYoutubeEjsWhenAvailable();
+    commandPrefersBundledYtDlpForYoutubeEjsWhenAvailable();
+    uvxFallbackDoesNotUseBundledDenoOnlyOptions();
     rejectsEmptyAndNonHttpUrls();
     parsesErrorLinesFromYtDlpOutput();
     parsesYtDlpCliErrorLines();

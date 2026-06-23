@@ -461,16 +461,25 @@ juce::StringArray buildYtDlpCommand (const juce::String& url,
                                      const juce::File& toolDirectory)
 {
     juce::StringArray command;
+    const auto bundledYtDlp = findBundledExecutable ("yt-dlp", toolDirectory);
     const auto deno = findBundledExecutable ("deno", toolDirectory);
+    const auto usingBundledYtDlp = bundledYtDlp.existsAsFile();
 
-    command.add (resolveExecutableForChildProcess ("uvx", toolDirectory));
-    command.add ("--refresh-package");
-    command.add ("yt-dlp");
-    command.add ("--from");
-    command.add ("yt-dlp@latest");
-    command.add ("yt-dlp");
+    if (usingBundledYtDlp)
+    {
+        command.add (bundledYtDlp.getFullPathName());
+    }
+    else
+    {
+        command.add (resolveExecutableForChildProcess ("uvx", toolDirectory));
+        command.add ("--refresh-package");
+        command.add ("yt-dlp");
+        command.add ("--from");
+        command.add ("yt-dlp@latest");
+        command.add ("yt-dlp");
+    }
 
-    if (deno.existsAsFile())
+    if (usingBundledYtDlp && deno.existsAsFile())
     {
         command.add ("--js-runtimes");
         command.add ("deno:" + deno.getFullPathName());
@@ -596,7 +605,7 @@ DownloadJobResult downloadAudioWithYtDlp (const juce::String& url,
 
     if (! process.start (command))
     {
-        result.message = "Could not start uvx. Install uv, or run the StashTrack installer so uvx is copied next to the plug-in.";
+        result.message = "Could not start yt-dlp. Run the StashTrack installer so yt-dlp.exe and its helper tools are copied next to the plug-in.";
         return result;
     }
 

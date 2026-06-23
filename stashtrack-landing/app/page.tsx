@@ -5,7 +5,7 @@ import styles from './page.module.css'
 
 const SUPPORT_EMAIL = 'vsts@n9records.com'
 const DOWNLOAD_URL =
-  'https://github.com/davad00/StashTrack/releases/download/v0.3/StashTrackv0.3Setup.exe'
+  'https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe'
 
 const bars = Array.from({ length: 84 }, (_, index) => {
   const a = Math.sin(index * 0.47) * 0.5 + 0.5
@@ -16,15 +16,15 @@ const bars = Array.from({ length: 84 }, (_, index) => {
 const steps = [
   ['Paste', 'Drop a YouTube or yt-dlp supported URL into the plugin.'],
   ['Clip', 'Mark the exact section before the download starts.'],
-  ['Render', 'StashTrack pulls a WAV through uvx, yt-dlp, Deno, and ffmpeg.'],
+  ['Render', 'StashTrack pulls a WAV through bundled yt-dlp, Deno, and ffmpeg.'],
   ['Drag', 'Grab the waveform and drop it on an empty FL Studio playlist track.'],
 ]
 
 const specs = [
   ['Format', 'VST3 for Windows'],
-  ['Runtime', 'Bundled uvx, Deno, ffmpeg'],
+  ['Runtime', 'Bundled yt-dlp, Deno, ffmpeg'],
   ['Output', 'Drag-ready WAV'],
-  ['Version', 'v0.3'],
+  ['Version', 'v0.4'],
 ]
 
 function Waveform({ compact = false }: { compact?: boolean }) {
@@ -58,7 +58,7 @@ export default function Home() {
         <a href="#top" className={styles.brand} aria-label="StashTrack home">
           <span className={styles.mark} aria-hidden="true" />
           <span>StashTrack</span>
-          <span className={styles.version}>v0.3</span>
+          <span className={styles.version}>v0.4</span>
         </a>
         <nav className={styles.navLinks} aria-label="Primary navigation">
           <a href="#workflow">Workflow</a>
@@ -82,7 +82,7 @@ export default function Home() {
           </p>
           <div className={styles.actions}>
             <a className={styles.primaryButton} href={DOWNLOAD_URL}>
-              Download StashTrack v0.3
+              Download StashTrack v0.4
             </a>
             <a className={styles.secondaryButton} href="#workflow">
               See the workflow
@@ -202,11 +202,12 @@ export default function Home() {
           <p>
             The Windows setup checks before installing, then places the VST3 and
             helper tools beside the plugin binary. No global Python setup, no
-            manual ffmpeg hunt, no guessing where uvx lives.
+            manual ffmpeg hunt, no guessing which yt-dlp version uvx resolved.
           </p>
         </div>
         <ul className={styles.installList}>
           <li>StashTrack.vst3</li>
+          <li>yt-dlp.exe for extraction</li>
           <li>uv.exe and uvx.exe</li>
           <li>deno.exe for YouTube JS solving</li>
           <li>ffmpeg.exe for decode and trim</li>
@@ -218,7 +219,7 @@ export default function Home() {
         <p className={styles.kicker}>stashtrack.n9records.com</p>
         <h2>Keep the browser out of the beat.</h2>
         <a className={styles.primaryButton} href={DOWNLOAD_URL}>
-          Get StashTrack v0.3
+          Get StashTrack v0.4
         </a>
         <p>
           Support: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>

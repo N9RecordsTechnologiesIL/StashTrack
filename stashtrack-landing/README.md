@@ -3,7 +3,7 @@
 Live marketing and download site for `stashtrack.n9records.com`.
 
 StashTrack is a JUCE VST3 by N9 Records for FL Studio beatmakers. Paste a URL,
-clip the range, download with uvx/yt-dlp/Deno/ffmpeg, preview the waveform, and
+clip the range, download with bundled yt-dlp/Deno/ffmpeg, preview the waveform, and
 drag the WAV straight into the playlist.
 
 ## Stack
@@ -32,10 +32,10 @@ bun run start -- -H 0.0.0.0 -p 3000
 
 ## Installer Download
 
-The download buttons point to the v0.3 GitHub Release installer:
+The download buttons point to the v0.4 GitHub Release installer:
 
 ```text
-https://github.com/davad00/StashTrack/releases/download/v0.3/StashTrackv0.3Setup.exe
+https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe
 ```
 
 Upload a new release asset and update `app/page.tsx` when the release version

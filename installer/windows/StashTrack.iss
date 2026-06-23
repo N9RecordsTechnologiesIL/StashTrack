@@ -1,6 +1,6 @@
 #define AppName "StashTrack"
-#define AppVersion "v0.3"
-#define AppVersionNumeric "0.3.0"
+#define AppVersion "v0.4"
+#define AppVersionNumeric "0.4.0"
 #define AppPublisher "N9 Records"
 #define AppURL "https://stashtrack.n9records.com"
 #define AppSupportEmail "vsts@n9records.com"
@@ -24,7 +24,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallFilesDir={commonappdata}\N9 Records\StashTrack\Uninstall
 OutputDir=..\..\dist
-OutputBaseFilename=StashTrackv0.3Setup
+OutputBaseFilename=StashTrackv0.4Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -47,6 +47,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "staging\Payload\StashTrack.vst3\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "staging\Tools\uv.exe"; DestDir: "{app}\Contents\x86_64-win"; Flags: ignoreversion
 Source: "staging\Tools\uvx.exe"; DestDir: "{app}\Contents\x86_64-win"; Flags: ignoreversion
+Source: "staging\Tools\yt-dlp.exe"; DestDir: "{app}\Contents\x86_64-win"; Flags: ignoreversion
 Source: "staging\Tools\ffmpeg.exe"; DestDir: "{app}\Contents\x86_64-win"; Flags: ignoreversion
 Source: "staging\Tools\deno.exe"; DestDir: "{app}\Contents\x86_64-win"; Flags: ignoreversion
 Source: "staging\Runtimes\VC_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall

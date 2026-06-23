@@ -32,7 +32,7 @@ $dist = Join-Path $root "dist"
 
 $pluginSource = Join-Path $BuildDir "StashTrack_artefacts\$Configuration\VST3\StashTrack.vst3"
 $pluginDestination = Join-Path $payload "StashTrack.vst3"
-$setupOutput = Join-Path $dist "StashTrackv0.3Setup.exe"
+$setupOutput = Join-Path $dist "StashTrackv0.4Setup.exe"
 
 function Get-FullPath {
     param([string] $Path)
@@ -195,6 +195,24 @@ function Ensure-Ffmpeg {
     Write-Host "Staged ffmpeg.exe."
 }
 
+function Ensure-YtDlp {
+    New-Item -ItemType Directory -Force -Path $tools | Out-Null
+    New-Item -ItemType Directory -Force -Path $cache | Out-Null
+
+    $ytDlpUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+    $ytDlpCache = Join-Path $cache "yt-dlp.exe"
+    $ytDlp = Join-Path $tools "yt-dlp.exe"
+
+    Invoke-Download -Url $ytDlpUrl -Destination $ytDlpCache
+
+    if ((Get-Item -LiteralPath $ytDlpCache).Length -le 0) {
+        throw "Downloaded yt-dlp.exe is empty."
+    }
+
+    Copy-Item -LiteralPath $ytDlpCache -Destination $ytDlp -Force
+    Write-Host "Staged yt-dlp.exe."
+}
+
 function Ensure-Deno {
     New-Item -ItemType Directory -Force -Path $tools | Out-Null
     New-Item -ItemType Directory -Force -Path $cache | Out-Null
@@ -321,7 +339,7 @@ function Write-StagingDocuments {
     @"
 StashTrack VST3 Plug-in
 Publisher: N9 Records
-Version: v0.3
+Version: v0.4
 Website: https://stashtrack.n9records.com
 Support: vsts@n9records.com
 
@@ -329,12 +347,13 @@ This installer places StashTrack.vst3 in:
 C:\Program Files\Common Files\VST3\StashTrack.vst3
 
 Fresh-PC notes:
-- uv.exe and uvx.exe are bundled beside the plug-in binary, so Python is not required.
+- yt-dlp.exe is bundled beside the plug-in binary and used directly.
+- uv.exe and uvx.exe are bundled beside the plug-in binary as a fallback, so Python is not required.
 - ffmpeg.exe is bundled beside the plug-in binary.
 - deno.exe is bundled beside the plug-in binary so yt-dlp can solve YouTube JavaScript challenges.
 - Microsoft Visual C++ Redistributable x64 is installed silently only when it is missing.
 - Old StashTrack.vst3 copies in common and user-local VST3 folders are removed before install.
-- On first download, uvx may fetch and cache yt-dlp and its EJS helper package from the internet.
+- On first download, yt-dlp/Deno may fetch and cache YouTube helper components from the internet.
 
 After setup, open your DAW, rescan VST3 plug-ins, and load StashTrack.
 "@ | Set-Content -LiteralPath (Join-Path $staging "README-INSTALL.txt") -Encoding UTF8
@@ -354,12 +373,13 @@ Third-Party Notices
 StashTrack bundles these helper tools for convenience on fresh Windows systems:
 
 - uv / uvx from Astral. See https://github.com/astral-sh/uv for license details.
+- yt-dlp. See https://github.com/yt-dlp/yt-dlp for license details.
 - FFmpeg Windows release essentials build from gyan.dev. FFmpeg is licensed under LGPL/GPL terms depending on build configuration; see https://ffmpeg.org/legal.html.
 - Deno JavaScript runtime. See https://github.com/denoland/deno for license details.
 - Microsoft Visual C++ Redistributable x64 from Microsoft. It is installed under Microsoft's redistributable terms.
 - Inno Setup is used to build this installer. See https://jrsoftware.org/.
 
-At runtime, StashTrack launches yt-dlp through uvx. yt-dlp and its EJS helper package are downloaded/cached by uvx when needed; see https://github.com/yt-dlp/yt-dlp for license details.
+At runtime, StashTrack launches the bundled yt-dlp.exe directly. uvx is kept as a fallback if the bundled executable is missing.
 "@ | Set-Content -LiteralPath (Join-Path $staging "THIRD-PARTY-NOTICES.txt") -Encoding UTF8
 }
 
@@ -383,6 +403,7 @@ Copy-Item -LiteralPath $pluginSource -Destination $pluginDestination -Recurse -F
 Write-StagingDocuments
 
 Ensure-UvTools
+Ensure-YtDlp
 Ensure-Ffmpeg
 Ensure-Deno
 Ensure-VcRuntime
@@ -393,7 +414,7 @@ if (Test-Path -LiteralPath $setupOutput) {
 
 $iscc = Ensure-InnoCompiler
 
-Write-Host "Compiling StashTrackv0.3Setup.exe..."
+Write-Host "Compiling StashTrackv0.4Setup.exe..."
 Push-Location $installerRoot
 try {
     & $iscc "StashTrack.iss"
