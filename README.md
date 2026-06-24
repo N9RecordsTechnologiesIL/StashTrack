@@ -122,13 +122,17 @@ bun run typecheck
 bun run build
 ```
 
-The landing page download buttons point to the v0.4 GitHub Release installer:
+The landing page download buttons point to the site redirect route:
 
 ```text
-https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe
+/download/windows
 ```
 
-After rebuilding `dist/StashTrackv0.4Setup.exe`, upload the release asset to GitHub Releases and update `stashtrack-landing/app/page.tsx` if the release URL changes.
+That route asks GitHub for the latest release and redirects to the newest
+`StashTrackv*Setup.exe` asset. After rebuilding
+`dist/StashTrackv0.4Setup.exe`, upload it to GitHub Releases; the landing page
+does not need a code edit for future installer version changes as long as the
+asset filename keeps that pattern.
 
 ## License
 

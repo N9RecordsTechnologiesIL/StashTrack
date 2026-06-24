@@ -4,8 +4,7 @@ import { useMemo, useState } from 'react'
 import styles from './page.module.css'
 
 const SUPPORT_EMAIL = 'vsts@n9records.com'
-const DOWNLOAD_URL =
-  'https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe'
+const DOWNLOAD_URL = '/download/windows'
 
 const bars = Array.from({ length: 84 }, (_, index) => {
   const a = Math.sin(index * 0.47) * 0.5 + 0.5

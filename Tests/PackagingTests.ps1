@@ -8,7 +8,9 @@ $renderYaml = Get-Content -Raw (Join-Path $root "render.yaml")
 $landingPackage = Get-Content -Raw (Join-Path $root "stashtrack-landing/package.json")
 $landingNextConfig = Get-Content -Raw (Join-Path $root "stashtrack-landing/next.config.mjs")
 $landingPage = Get-Content -Raw (Join-Path $root "stashtrack-landing/app/page.tsx")
-$releaseInstallerUrl = "https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe"
+$landingDownloadRoute = Get-Content -Raw (Join-Path $root "stashtrack-landing/app/download/windows/route.ts")
+$downloadRoutePath = "/download/windows"
+$fallbackInstallerUrl = "https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe"
 
 function Assert-Contains {
     param(
@@ -51,7 +53,14 @@ Assert-Contains $renderYaml 'stashtrack.n9records.com' 'Render Blueprint must co
 Assert-Contains $landingPackage '"packageManager": "bun@' 'Landing package must declare Bun as the package manager.'
 Assert-Contains $landingPackage '"build": "next build"' 'Landing package must expose the Next build script.'
 Assert-Contains $landingPackage '"start": "next start"' 'Landing package must expose the Next start script.'
-Assert-Contains $landingPage $releaseInstallerUrl 'Landing page must download the v0.4 installer from the GitHub Release asset.'
+Assert-Contains $landingPage "const DOWNLOAD_URL = '$downloadRoutePath'" 'Landing page must use the local Windows download redirect route.'
+Assert-Contains $landingDownloadRoute 'https://api.github.com/repos/davad00/StashTrack/releases/latest' 'Download route must resolve the latest GitHub Release.'
+Assert-Contains $landingDownloadRoute $fallbackInstallerUrl 'Download route must keep a known-good fallback installer URL.'
+Assert-Contains $landingDownloadRoute 'StashTrackv.+Setup\.exe' 'Download route must find versioned StashTrack installer assets.'
+
+if ($landingPage.Contains('github.com/davad00/StashTrack/releases/download/v')) {
+    throw 'Landing page must not hard-code a versioned GitHub Release installer URL.'
+}
 
 if ($renderYaml.Contains('runtime: static') -or $renderYaml.Contains('staticPublishPath:')) {
     throw 'Render Blueprint must not be configured as a static site.'

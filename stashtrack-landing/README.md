@@ -32,14 +32,16 @@ bun run start -- -H 0.0.0.0 -p 3000
 
 ## Installer Download
 
-The download buttons point to the v0.4 GitHub Release installer:
+The download buttons point to the local redirect route:
 
 ```text
-https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe
+/download/windows
 ```
 
-Upload a new release asset and update `app/page.tsx` when the release version
-changes.
+That route asks the GitHub Releases API for the latest release and redirects to
+the newest `StashTrackv*Setup.exe` asset. Future installer releases do not need
+landing-page code changes as long as the release asset keeps that filename
+pattern.
 
 ## Render
 
