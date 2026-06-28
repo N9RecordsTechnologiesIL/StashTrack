@@ -5,5 +5,12 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const release = await getLatestInstallerRelease()
-  return NextResponse.redirect(release.installerUrl, 302)
+
+  return NextResponse.json({
+    versionTag: release.versionTag,
+    releasePageUrl: release.releasePageUrl,
+    installerUrl: release.installerUrl,
+    downloadUrl: '/download/windows',
+    fallback: release.fallback,
+  })
 }

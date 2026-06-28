@@ -1,6 +1,6 @@
 #define AppName "StashTrack"
-#define AppVersion "v0.4"
-#define AppVersionNumeric "0.4.0"
+#define AppVersion "v0.5"
+#define AppVersionNumeric "0.5.0"
 #define AppPublisher "N9 Records"
 #define AppURL "https://stashtrack.n9records.com"
 #define AppSupportEmail "vsts@n9records.com"
@@ -24,7 +24,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallFilesDir={commonappdata}\N9 Records\StashTrack\Uninstall
 OutputDir=..\..\dist
-OutputBaseFilename=StashTrackv0.4Setup
+OutputBaseFilename=StashTrackv0.5Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

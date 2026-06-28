@@ -5,6 +5,10 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "PluginProcessor.h"
 #include "DownloadUtils.h"
+#include "UpdateUtils.h"
+
+#include <atomic>
+#include <thread>
 
 class WaveformFileDragComponent;
 class ReactJuceBackdropComponent;
@@ -33,6 +37,10 @@ private:
     void startDownload();
     void run() override;                 // background download thread
     void downloadFinished (StashTrack::DownloadJobResult result);
+    void startUpdateCheck();
+    void updateCheckFinished (StashTrack::UpdateCheckResult result);
+    void startUpdateInstallerDownload (StashTrack::LatestReleaseInfo latest);
+    void updateInstallerDownloadFinished (StashTrack::UpdateInstallResult result);
     void updateClipControls();
     void setStatus (const juce::String& message, juce::Colour colour);
     void showErrorAlert (const juce::String& title, const juce::String& message);
@@ -59,6 +67,10 @@ private:
     StashTrack::DownloadFolderChoice pendingDownloadChoice;
     StashTrack::DownloadOptions pendingDownloadOptions;
     juce::File downloadedFile;
+    std::thread updateCheckThread;
+    std::thread updateInstallerThread;
+    std::atomic<bool> closing { false };
+    bool updateInstallerDownloadRunning = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YouTubeGrabberAudioProcessorEditor)
 };

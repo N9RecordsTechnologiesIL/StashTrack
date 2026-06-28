@@ -7,7 +7,7 @@ StashTrack is a JUCE audio plug-in that lets you paste a YouTube or other yt-dlp
 Publisher: N9 Records
 Website: https://stashtrack.n9records.com
 Support: vsts@n9records.com
-Version: v0.4
+Version: v0.5
 Copyright: Copyright (c) 2026 N9 Records
 License: StashTrack Non-Commercial License v0.1. Free to use, copy, modify, and share for non-commercial purposes only. No commercial use or profit is allowed.
 
@@ -130,9 +130,24 @@ The landing page download buttons point to the site redirect route:
 
 That route asks GitHub for the latest release and redirects to the newest
 `StashTrackv*Setup.exe` asset. After rebuilding
-`dist/StashTrackv0.4Setup.exe`, upload it to GitHub Releases; the landing page
+`dist/StashTrackv0.5Setup.exe`, upload it to GitHub Releases; the landing page
 does not need a code edit for future installer version changes as long as the
 asset filename keeps that pattern.
+
+Visible version labels on the landing page call `/api/latest-release`, which
+uses the same GitHub latest-release resolver.
+
+## Auto Updates
+
+When the plug-in editor opens, StashTrack checks the latest GitHub Release on a
+background thread. If the release tag is newer than the running
+`JucePlugin_VersionString`, it prompts the user to download the installer. When
+accepted, StashTrack downloads the newest `StashTrackv*Setup.exe` to the user's
+Downloads folder and opens it.
+
+The installer cannot safely replace a VST3 binary while the DAW has it loaded,
+so the user still needs to close FL Studio before completing setup, then reopen
+FL Studio and rescan if needed.
 
 ## License
 
@@ -168,10 +183,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer/windows/build-inst
 The installer is written to:
 
 ```text
-dist/StashTrackv0.4Setup.exe
+dist/StashTrackv0.5Setup.exe
 ```
 
-`StashTrackv0.4Setup.exe` installs to the standard system VST3 folder:
+`StashTrackv0.5Setup.exe` installs to the standard system VST3 folder:
 
 ```text
 C:\Program Files\Common Files\VST3\StashTrack.vst3
@@ -236,6 +251,7 @@ ctest --test-dir build --output-on-failure
 ## Source Layout
 
 - `Source/DownloadUtils.*`: URL validation, yt-dlp command construction, output parsing, and `ChildProcess` execution.
+- `Source/UpdateUtils.*`: latest-release lookup, semantic version comparison, update installer download, and installer launch.
 - `Source/PluginEditor.*`: JUCE GUI with `TextEditor`, `TextButton`, status `Label`, background download thread, message-thread status updates, waveform rendering, and native file drag into the host.
 - `Source/PluginProcessor.*`: silent default processor path with retained JUCE audio-loading helpers for future playback workflows.
 - `Tests/DownloadUtilsTests.cpp`: command/URL/output parsing tests.

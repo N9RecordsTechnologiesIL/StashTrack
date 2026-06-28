@@ -1,6 +1,7 @@
 #include <juce_core/juce_core.h>
 
 #include "../Source/DownloadUtils.h"
+#include "../Source/UpdateUtils.h"
 
 #include <iostream>
 
@@ -362,6 +363,84 @@ namespace
         expect (! choice.fromFlStudioProject,
                 "fallback download folder choice should not report an FL Studio project");
     }
+
+    void normalisesVersionTagsForDisplayAndComparison()
+    {
+        expect (StashTrack::normaliseVersionTag ("v0.4.0") == "0.4.0",
+                "version normalisation should strip a leading v");
+        expect (StashTrack::normaliseVersionTag ("  0.5  ") == "0.5",
+                "version normalisation should trim whitespace");
+        expect (StashTrack::normaliseVersionTag ("release-v1.2") == "1.2",
+                "version normalisation should skip non-numeric prefixes");
+    }
+
+    void comparesSemanticVersions()
+    {
+        expect (StashTrack::isVersionNewer ("0.4.0", "v0.5"),
+                "v0.5 should be newer than 0.4.0");
+        expect (StashTrack::isVersionNewer ("0.4.9", "v0.5.0"),
+                "minor version bumps should be newer");
+        expect (! StashTrack::isVersionNewer ("0.4.0", "v0.4"),
+                "matching versions with missing patch should not count as newer");
+        expect (! StashTrack::isVersionNewer ("0.5.0", "v0.4.9"),
+                "older releases should not count as newer");
+    }
+
+    void parsesGitHubLatestReleaseJson()
+    {
+        const auto release = StashTrack::parseLatestReleaseJson (R"json(
+            {
+              "tag_name": "v0.5",
+              "html_url": "https://github.com/davad00/StashTrack/releases/tag/v0.5",
+              "assets": [
+                {
+                  "name": "Source.zip",
+                  "browser_download_url": "https://example.com/source.zip"
+                },
+                {
+                  "name": "StashTrackv0.5Setup.exe",
+                  "browser_download_url": "https://github.com/davad00/StashTrack/releases/download/v0.5/StashTrackv0.5Setup.exe"
+                }
+              ]
+            }
+        )json");
+
+        expect (release.valid, "GitHub release JSON with an installer asset should be valid");
+        expect (release.versionTag == "v0.5", "release parser should keep the GitHub tag");
+        expect (release.installerUrl.endsWith ("StashTrackv0.5Setup.exe"),
+                "release parser should select the Windows setup asset");
+        expect (release.releasePageUrl.endsWith ("/v0.5"),
+                "release parser should keep the release page URL");
+    }
+
+    void rejectsReleaseJsonWithoutInstaller()
+    {
+        const auto release = StashTrack::parseLatestReleaseJson (R"json(
+            {
+              "tag_name": "v0.5",
+              "assets": [
+                {
+                  "name": "notes.txt",
+                  "browser_download_url": "https://example.com/notes.txt"
+                }
+              ]
+            }
+        )json");
+
+        expect (! release.valid, "release parser should reject releases with no setup exe asset");
+    }
+
+    void updaterDownloadFileUsesDownloadsFolderAndVersion()
+    {
+        const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                                .getChildFile ("StashTrackUpdaterTests");
+        const auto file = StashTrack::getUpdaterDownloadFile ("v0.5", folder);
+
+        expect (file.getParentDirectory() == folder,
+                "updater installer should be staged in the selected folder");
+        expect (file.getFileName() == "StashTrackv0.5Setup.exe",
+                "updater installer filename should include the release tag");
+    }
 }
 
 int main()
@@ -382,6 +461,11 @@ int main()
     validatesClipTimeRanges();
     downloadFolderChoicePrefersProjectParent();
     downloadFolderChoiceFallsBackWithoutProject();
+    normalisesVersionTagsForDisplayAndComparison();
+    comparesSemanticVersions();
+    parsesGitHubLatestReleaseJson();
+    rejectsReleaseJsonWithoutInstaller();
+    updaterDownloadFileUsesDownloadsFolderAndVersion();
 
     if (failures == 0)
     {

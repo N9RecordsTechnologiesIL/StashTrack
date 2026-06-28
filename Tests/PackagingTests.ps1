@@ -9,8 +9,11 @@ $landingPackage = Get-Content -Raw (Join-Path $root "stashtrack-landing/package.
 $landingNextConfig = Get-Content -Raw (Join-Path $root "stashtrack-landing/next.config.mjs")
 $landingPage = Get-Content -Raw (Join-Path $root "stashtrack-landing/app/page.tsx")
 $landingDownloadRoute = Get-Content -Raw (Join-Path $root "stashtrack-landing/app/download/windows/route.ts")
+$landingLatestReleaseRoute = Get-Content -Raw (Join-Path $root "stashtrack-landing/app/api/latest-release/route.ts")
+$landingGithubReleaseLib = Get-Content -Raw (Join-Path $root "stashtrack-landing/lib/githubRelease.ts")
 $downloadRoutePath = "/download/windows"
-$fallbackInstallerUrl = "https://github.com/davad00/StashTrack/releases/download/v0.4/StashTrackv0.4Setup.exe"
+$latestReleaseApiPath = "/api/latest-release"
+$fallbackInstallerUrl = "https://github.com/davad00/StashTrack/releases/download/v0.5/StashTrackv0.5Setup.exe"
 
 function Assert-Contains {
     param(
@@ -24,7 +27,7 @@ function Assert-Contains {
     }
 }
 
-Assert-Contains $cmake 'project(StashTrack VERSION 0.4.0)' 'CMake project must be named StashTrack with version 0.4.0.'
+Assert-Contains $cmake 'project(StashTrack VERSION 0.5.0)' 'CMake project must be named StashTrack with version 0.5.0.'
 Assert-Contains $cmake 'juce_add_plugin(StashTrack' 'JUCE plug-in target must be named StashTrack.'
 Assert-Contains $cmake 'COMPANY_NAME              "N9 Records"' 'JUCE company name must be N9 Records.'
 Assert-Contains $cmake 'COMPANY_WEBSITE           "https://stashtrack.n9records.com"' 'JUCE company website must be stashtrack.n9records.com.'
@@ -38,7 +41,7 @@ Assert-Contains $readme '# StashTrack JUCE Plug-in' 'README title must use Stash
 Assert-Contains $readme 'Publisher: N9 Records' 'README must document the publisher.'
 Assert-Contains $readme 'Website: https://stashtrack.n9records.com' 'README must document the website.'
 Assert-Contains $readme 'Support: vsts@n9records.com' 'README must document the support email.'
-Assert-Contains $readme 'Version: v0.4' 'README must document the preferred display version.'
+Assert-Contains $readme 'Version: v0.5' 'README must document the preferred display version.'
 Assert-Contains $readme 'License: StashTrack Non-Commercial License v0.1' 'README must document the custom non-commercial license.'
 Assert-Contains $license '# StashTrack Non-Commercial License v0.1' 'License file must use the custom StashTrack license title.'
 Assert-Contains $license 'No Commercial Use Or Profit' 'License file must prohibit commercial use and profit.'
@@ -54,12 +57,21 @@ Assert-Contains $landingPackage '"packageManager": "bun@' 'Landing package must 
 Assert-Contains $landingPackage '"build": "next build"' 'Landing package must expose the Next build script.'
 Assert-Contains $landingPackage '"start": "next start"' 'Landing package must expose the Next start script.'
 Assert-Contains $landingPage "const DOWNLOAD_URL = '$downloadRoutePath'" 'Landing page must use the local Windows download redirect route.'
-Assert-Contains $landingDownloadRoute 'https://api.github.com/repos/davad00/StashTrack/releases/latest' 'Download route must resolve the latest GitHub Release.'
-Assert-Contains $landingDownloadRoute $fallbackInstallerUrl 'Download route must keep a known-good fallback installer URL.'
-Assert-Contains $landingDownloadRoute 'StashTrackv.+Setup\.exe' 'Download route must find versioned StashTrack installer assets.'
+Assert-Contains $landingPage "fetch('$latestReleaseApiPath')" 'Landing page must fetch the latest release label dynamically.'
+Assert-Contains $landingPage "useState('latest')" 'Landing page must not hard-code a visible release version.'
+Assert-Contains $landingDownloadRoute 'getLatestInstallerRelease' 'Download route must use the shared latest-release resolver.'
+Assert-Contains $landingLatestReleaseRoute 'getLatestInstallerRelease' 'Latest-release API route must use the shared latest-release resolver.'
+Assert-Contains $landingLatestReleaseRoute "downloadUrl: '$downloadRoutePath'" 'Latest-release API route must expose the stable download path.'
+Assert-Contains $landingGithubReleaseLib 'https://api.github.com/repos/davad00/StashTrack/releases/latest' 'Shared release resolver must query the latest GitHub Release.'
+Assert-Contains $landingGithubReleaseLib $fallbackInstallerUrl 'Shared release resolver must keep a known-good fallback installer URL.'
+Assert-Contains $landingGithubReleaseLib 'StashTrackv.+Setup\.exe' 'Shared release resolver must find versioned StashTrack installer assets.'
 
 if ($landingPage.Contains('github.com/davad00/StashTrack/releases/download/v')) {
     throw 'Landing page must not hard-code a versioned GitHub Release installer URL.'
+}
+
+if ($landingPage -match 'v0\.\d+') {
+    throw 'Landing page must not hard-code a visible release version.'
 }
 
 if ($renderYaml.Contains('runtime: static') -or $renderYaml.Contains('staticPublishPath:')) {
@@ -133,8 +145,8 @@ $innoScript = Get-Content -Raw $windowsExeInstallerScript
 
 foreach ($required in @(
     'AppName=StashTrack',
-    '#define AppVersion "v0.4"',
-    '#define AppVersionNumeric "0.4.0"',
+    '#define AppVersion "v0.5"',
+    '#define AppVersionNumeric "0.5.0"',
     '#define AppPublisher "N9 Records"',
     '#define AppURL "https://stashtrack.n9records.com"',
     '#define AppSupportEmail "vsts@n9records.com"',
@@ -172,7 +184,7 @@ foreach ($required in @(
     'innosetup-6.7.3.exe',
     'vc_redist.x64.exe',
     '$vcRedistCache = Join-Path $cache "vc_redist.x64.exe"',
-    'StashTrackv0.4Setup.exe',
+    'StashTrackv0.5Setup.exe',
     'ISCC.exe'
 )) {
     Assert-Contains $builderScript $required "Windows EXE installer build script is missing required text: $required"

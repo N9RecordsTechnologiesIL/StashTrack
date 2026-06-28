@@ -359,11 +359,19 @@ YouTubeGrabberAudioProcessorEditor::YouTubeGrabberAudioProcessorEditor (
     updateClipControls();
 
     setSize (720, 430);
+    startUpdateCheck();
 }
 
 YouTubeGrabberAudioProcessorEditor::~YouTubeGrabberAudioProcessorEditor()
 {
+    closing = true;
     stopThread (4000);
+
+    if (updateCheckThread.joinable())
+        updateCheckThread.join();
+
+    if (updateInstallerThread.joinable())
+        updateInstallerThread.join();
 }
 
 //==============================================================================
@@ -531,6 +539,118 @@ void YouTubeGrabberAudioProcessorEditor::downloadFinished (StashTrack::DownloadJ
                        : juce::String ("Download failed. Check uv/uvx and ffmpeg.");
     setStatus (message, kError);
     showErrorAlert ("Download failed", message);
+}
+
+void YouTubeGrabberAudioProcessorEditor::startUpdateCheck()
+{
+    if (updateCheckThread.joinable())
+        return;
+
+    juce::Component::SafePointer<YouTubeGrabberAudioProcessorEditor> safeThis (this);
+
+    updateCheckThread = std::thread ([safeThis]
+    {
+        const auto result = StashTrack::checkForUpdate (JucePlugin_VersionString);
+
+        juce::MessageManager::callAsync ([safeThis, result]() mutable
+        {
+            if (safeThis != nullptr)
+                safeThis->updateCheckFinished (std::move (result));
+        });
+    });
+}
+
+void YouTubeGrabberAudioProcessorEditor::updateCheckFinished (StashTrack::UpdateCheckResult result)
+{
+    if (closing || ! result.succeeded || ! result.updateAvailable)
+        return;
+
+    setStatus ("Update available: " + result.latest.versionTag, kAccent);
+
+    juce::Component::SafePointer<YouTubeGrabberAudioProcessorEditor> safeThis (this);
+    const auto latest = result.latest;
+    const auto message = "You are running StashTrack v"
+                       + juce::String (JucePlugin_VersionString)
+                       + ". " + latest.versionTag
+                       + " is available.\n\nDownload and open the installer now? "
+                         "Close FL Studio before finishing the installer so the loaded VST3 can be replaced.";
+
+    juce::AlertWindow::showOkCancelBox (
+        juce::AlertWindow::InfoIcon,
+        "StashTrack update available",
+        message,
+        "Download update",
+        "Later",
+        this,
+        juce::ModalCallbackFunction::create ([safeThis, latest] (int resultCode)
+        {
+            if (safeThis != nullptr && resultCode != 0)
+                safeThis->startUpdateInstallerDownload (latest);
+        }));
+}
+
+void YouTubeGrabberAudioProcessorEditor::startUpdateInstallerDownload (StashTrack::LatestReleaseInfo latest)
+{
+    if (updateInstallerDownloadRunning)
+    {
+        setStatus ("Update download is already running.", kMuted);
+        return;
+    }
+
+    if (updateInstallerThread.joinable())
+        updateInstallerThread.join();
+
+    updateInstallerDownloadRunning = true;
+    setStatus ("Downloading " + latest.versionTag + " installer...", kMuted);
+
+    const auto destination = StashTrack::getUpdaterDownloadFile (latest.versionTag);
+    const auto installerUrl = latest.installerUrl;
+    juce::Component::SafePointer<YouTubeGrabberAudioProcessorEditor> safeThis (this);
+
+    updateInstallerThread = std::thread ([safeThis, installerUrl, destination]
+    {
+        auto result = StashTrack::downloadInstallerToFile (installerUrl, destination);
+
+        juce::MessageManager::callAsync ([safeThis, result]() mutable
+        {
+            if (safeThis != nullptr)
+                safeThis->updateInstallerDownloadFinished (std::move (result));
+        });
+    });
+}
+
+void YouTubeGrabberAudioProcessorEditor::updateInstallerDownloadFinished (StashTrack::UpdateInstallResult result)
+{
+    updateInstallerDownloadRunning = false;
+
+    if (closing)
+        return;
+
+    if (! result.succeeded)
+    {
+        const auto message = result.message.isNotEmpty()
+                           ? result.message
+                           : juce::String ("Could not download the update installer.");
+        setStatus (message, kError);
+        showErrorAlert ("Update failed", message);
+        return;
+    }
+
+    if (StashTrack::launchInstaller (result.installerFile))
+    {
+        setStatus ("Installer opened. Close FL Studio to finish updating.", kAccent);
+        juce::AlertWindow::showMessageBoxAsync (
+            juce::AlertWindow::InfoIcon,
+            "Installer opened",
+            "The StashTrack installer has been downloaded and opened.\n\n"
+            "Close FL Studio before completing setup, then reopen FL Studio and rescan plugins if needed.");
+        return;
+    }
+
+    const auto message = "Downloaded the installer, but could not open it: "
+                       + result.installerFile.getFullPathName();
+    setStatus (message, kError);
+    showErrorAlert ("Update downloaded", message);
 }
 
 void YouTubeGrabberAudioProcessorEditor::updateClipControls()

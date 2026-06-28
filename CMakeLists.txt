@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(StashTrack VERSION 0.4.0)
+project(StashTrack VERSION 0.5.0)
 
 # Pull in JUCE. This workspace has JUCE downloaded next to this project at
 # H:/code/VSTs/JUCE, but the cache variable lets other machines point at their
@@ -50,6 +50,7 @@ juce_add_plugin(StashTrack
 target_sources(StashTrack
     PRIVATE
         Source/DownloadUtils.cpp
+        Source/UpdateUtils.cpp
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp)
 
@@ -111,6 +112,7 @@ juce_add_console_app(StashTrackTests
 target_sources(StashTrackTests
     PRIVATE
         Source/DownloadUtils.cpp
+        Source/UpdateUtils.cpp
         Tests/DownloadUtilsTests.cpp)
 
 target_compile_definitions(StashTrackTests

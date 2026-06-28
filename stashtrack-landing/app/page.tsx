@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import styles from './page.module.css'
 
 const SUPPORT_EMAIL = 'vsts@n9records.com'
@@ -23,8 +23,11 @@ const specs = [
   ['Format', 'VST3 for Windows'],
   ['Runtime', 'Bundled yt-dlp, Deno, ffmpeg'],
   ['Output', 'Drag-ready WAV'],
-  ['Version', 'v0.4'],
 ]
+
+type LatestReleaseResponse = {
+  versionTag?: string
+}
 
 function Waveform({ compact = false }: { compact?: boolean }) {
   return (
@@ -45,7 +48,30 @@ function Waveform({ compact = false }: { compact?: boolean }) {
 
 export default function Home() {
   const [dropped, setDropped] = useState(false)
+  const [versionTag, setVersionTag] = useState('latest')
   const year = useMemo(() => new Date().getFullYear(), [])
+  const versionLabel = versionTag || 'latest'
+  const displayedSpecs = useMemo(
+    () => [...specs, ['Version', versionLabel]],
+    [versionLabel],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch('/api/latest-release')
+      .then((response) => (response.ok ? response.json() : undefined))
+      .then((release: LatestReleaseResponse | undefined) => {
+        if (!cancelled && release?.versionTag) {
+          setVersionTag(release.versionTag)
+        }
+      })
+      .catch(() => undefined)
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <main className={styles.page}>
@@ -57,7 +83,7 @@ export default function Home() {
         <a href="#top" className={styles.brand} aria-label="StashTrack home">
           <span className={styles.mark} aria-hidden="true" />
           <span>StashTrack</span>
-          <span className={styles.version}>v0.4</span>
+          <span className={styles.version}>{versionLabel}</span>
         </a>
         <nav className={styles.navLinks} aria-label="Primary navigation">
           <a href="#workflow">Workflow</a>
@@ -81,7 +107,7 @@ export default function Home() {
           </p>
           <div className={styles.actions}>
             <a className={styles.primaryButton} href={DOWNLOAD_URL}>
-              Download StashTrack v0.4
+              Download StashTrack {versionLabel}
             </a>
             <a className={styles.secondaryButton} href="#workflow">
               See the workflow
@@ -126,7 +152,7 @@ export default function Home() {
       </section>
 
       <section id="content" className={styles.stats} aria-label="Product facts">
-        {specs.map(([label, value]) => (
+        {displayedSpecs.map(([label, value]) => (
           <div className={styles.stat} key={label}>
             <span>{label}</span>
             <strong>{value}</strong>
@@ -218,7 +244,7 @@ export default function Home() {
         <p className={styles.kicker}>stashtrack.n9records.com</p>
         <h2>Keep the browser out of the beat.</h2>
         <a className={styles.primaryButton} href={DOWNLOAD_URL}>
-          Get StashTrack v0.4
+          Get StashTrack {versionLabel}
         </a>
         <p>
           Support: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>

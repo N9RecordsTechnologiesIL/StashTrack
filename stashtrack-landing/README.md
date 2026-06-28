@@ -43,6 +43,10 @@ the newest `StashTrackv*Setup.exe` asset. Future installer releases do not need
 landing-page code changes as long as the release asset keeps that filename
 pattern.
 
+The visible version labels call `/api/latest-release`, which uses the same
+GitHub latest-release resolver and falls back to the last known installer if
+GitHub is temporarily unavailable.
+
 ## Render
 
 The repository root includes `render.yaml`. It configures a Render web service
