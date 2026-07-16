@@ -3,7 +3,7 @@
 #define AppVersionNumeric "0.8.1"
 #define AppPublisher "N9 Records"
 #define AppURL "https://stashtrack.n9records.com"
-#define AppSupportEmail "vsts@n9records.com"
+#define AppSupportEmail "StashTrack-Support@n9records.com"
 #define AppExeName "StashTrack.vst3"
 
 [Setup]

@@ -39,7 +39,7 @@ Assert-Contains $cmake 'PRODUCT_NAME              "StashTrack"' 'JUCE product na
 Assert-Contains $readme '<h1 align="center">StashTrack JUCE Plug-in</h1>' 'README title must use StashTrack.'
 Assert-Contains $readme 'Publisher: N9 Records' 'README must document the publisher.'
 Assert-Contains $readme 'Website: https://stashtrack.n9records.com' 'README must document the website.'
-Assert-Contains $readme 'Support: vsts@n9records.com' 'README must document the support email.'
+Assert-Contains $readme 'Support: StashTrack-Support@n9records.com' 'README must document the support email.'
 Assert-Contains $readme 'Version: v0.8.1' 'README must document the preferred display version.'
 Assert-Contains $readme 'License: StashTrack Non-Commercial License v0.1' 'README must document the custom non-commercial license.'
 Assert-Contains $license '# StashTrack Non-Commercial License v0.1' 'License file must use the custom StashTrack license title.'
@@ -150,7 +150,7 @@ foreach ($required in @(
     '#define AppVersionNumeric "0.8.1"',
     '#define AppPublisher "N9 Records"',
     '#define AppURL "https://stashtrack.n9records.com"',
-    '#define AppSupportEmail "vsts@n9records.com"',
+    '#define AppSupportEmail "StashTrack-Support@n9records.com"',
     'AppContact={#AppSupportEmail}',
     'AppCopyright=Copyright (c) 2026 N9 Records',
     'UninstallFilesDir={commonappdata}\N9 Records\StashTrack\Uninstall',

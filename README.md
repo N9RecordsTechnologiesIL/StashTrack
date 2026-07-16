@@ -22,13 +22,14 @@ StashTrack is a VST3 that downloads the section you want from any
 yt-dlp-supported URL, renders a clean WAV with a waveform preview inside the
 plugin, and hands it to your DAW as a **native OS file drag** — the same drop
 FL Studio would receive from Explorer. Its entire UI is a React + TypeScript
-app rendered natively (no webview) by the [VSReacT](https://github.com/N9RecordsTechnologiesIL/VSReacT) engine.
+app rendered natively (no webview) by the [VSReacT](https://vsreact.n9records.com) engine
+([source](https://github.com/N9RecordsTechnologiesIL/VSReacT)).
 
 ## Metadata
 
 Publisher: N9 Records
 Website: https://stashtrack.n9records.com
-Support: vsts@n9records.com
+Support: StashTrack-Support@n9records.com
 Version: v0.8.1
 Copyright: Copyright (c) 2026 N9 Records
 License: StashTrack Non-Commercial License v0.1. Free to use, copy, modify, and share for non-commercial purposes only. No commercial use or profit is allowed.
