@@ -6,7 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import styles from './page.module.css'
 import { Magnetic, useMotionReady, useReveal } from './components/experience'
 
-const SUPPORT_EMAIL = 'StashTrack-Support@n9records.com'
+const SUPPORT_EMAIL = 'stashtrack-support@n9records.com'
 const VSREACT_URL = 'https://vsreact.n9records.com'
 const DOWNLOAD_URL = '/download/windows'
 const DOWNLOAD_MACOS_URL = '/download/macos'
