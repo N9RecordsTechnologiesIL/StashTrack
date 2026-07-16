@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -128,17 +128,145 @@ function DownloadButton({
   );
 }
 
-function ProgressBar({ working }: { working: boolean }) {
-  const tick = useTicker(80, working);
+function ProgressBar({ working, percent }: { working: boolean; percent: number | null }) {
+  const tick = useTicker(80, working && percent === null);
 
   return (
     <View className="h-[3] rounded-full bg-well overflow-hidden relative">
-      {working ? (
+      {working && percent !== null ? (
+        // Real yt-dlp progress.
+        <View
+          className="absolute top-0 left-0 h-full rounded-full bg-accent"
+          style={{ width: `${Math.max(1, percent)}%` }}
+        />
+      ) : working ? (
+        // Indeterminate sweep until the first percent arrives.
         <View
           className="absolute top-0 h-full w-[140] rounded-full bg-accent"
           style={{ left: -140 + (tick * 24) % 880 }}
         />
       ) : null}
+    </View>
+  );
+}
+
+/** Preview position bar — drag to scrub. */
+const SEEK_BAR_WIDTH = 656; // card inner width at the fixed 720px window
+
+function SeekBar({
+  fraction,
+  onSeek,
+}: {
+  fraction: number;
+  onSeek: (fraction: number) => void;
+}) {
+  const startFraction = useRef(0);
+
+  return (
+    <View
+      className="h-[12] justify-center cursor-pointer"
+      onDragStart={() => {
+        startFraction.current = fraction;
+      }}
+      onDrag={(e) =>
+        onSeek(Math.min(1, Math.max(0, startFraction.current + e.dx / SEEK_BAR_WIDTH)))
+      }
+    >
+      <View className="h-[3] rounded-full bg-well overflow-hidden">
+        <View
+          className="h-full rounded-full bg-accent/70"
+          style={{ width: `${fraction * 100}%` }}
+        />
+      </View>
+    </View>
+  );
+}
+
+interface StashEntry {
+  path: string;
+  name: string;
+  addedMs: number;
+}
+
+function formatAge(addedMs: number): string {
+  const minutes = Math.max(0, Math.round((Date.now() - addedMs) / 60000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
+function StashDrawer({
+  entries,
+  onClose,
+  onLoad,
+  onRemove,
+}: {
+  entries: StashEntry[];
+  onClose: () => void;
+  onLoad: (entry: StashEntry) => void;
+  onRemove: (entry: StashEntry) => void;
+}) {
+  const t = useTween({ duration: 260, easing: Easing.outCubic });
+
+  return (
+    <View className="absolute inset-0">
+      <View
+        className="absolute inset-0 bg-black cursor-pointer"
+        style={{ opacity: 0.55 * t }}
+        onClick={onClose}
+      />
+      <View
+        className="absolute top-0 bottom-0 w-[300] bg-panel border border-line p-4 gap-3"
+        style={{ right: lerp(-310, 0, t), shadowColor: "#000000AA", shadowRadius: 30, shadowOffsetY: 0 }}
+      >
+        <View className="flex-row items-center">
+          <Text className="text-text text-[13] font-bold tracking-widest">STASH</Text>
+          <View className="px-2 h-[16] ml-2 justify-center rounded-full border border-line bg-lift">
+            <Text className="text-muted text-[9] font-mono">{String(entries.length)}</Text>
+          </View>
+          <View className="flex-1" />
+          <View
+            className="w-[22] h-[22] rounded-full border border-line items-center justify-center cursor-pointer hover:border-accent/70"
+            onClick={onClose}
+          >
+            <Text className="text-muted text-[10] font-bold">x</Text>
+          </View>
+        </View>
+
+        <Text className="text-faint text-[9] tracking-wide">
+          your downloads — click one to reload it
+        </Text>
+
+        <View className="flex-1 overflow-y-scroll gap-2 pr-2">
+          {entries.length === 0 ? (
+            <Text className="text-faint text-[11]">nothing stashed yet</Text>
+          ) : (
+            entries.map((entry) => (
+              <View
+                key={entry.path}
+                className="rounded-lg border border-lineSoft bg-lift p-3 gap-1 cursor-pointer hover:border-accent/50"
+                onClick={() => onLoad(entry)}
+              >
+                <View className="h-[15] overflow-hidden">
+                  <Text className="text-text text-[11] font-bold">{entry.name}</Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Text className="text-faint text-[9] tracking-wide">{formatAge(entry.addedMs)}</Text>
+                  <View className="flex-1" />
+                  <View
+                    className="px-2 h-[15] justify-center rounded-full border border-lineSoft cursor-pointer hover:border-error/80"
+                    onClick={() => onRemove(entry)}
+                  >
+                    <Text className="text-faint text-[8] font-bold tracking-widest">REMOVE</Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </View>
     </View>
   );
 }
@@ -281,6 +409,10 @@ export default function App() {
   const [end, setEnd] = useState("");
   const [working, setWorking] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [percent, setPercent] = useState<number | null>(null);
+  const [preview, setPreview] = useState({ playing: false, fraction: 0 });
+  const [stash, setStash] = useState<StashEntry[]>([]);
+  const [stashOpen, setStashOpen] = useState(false);
   const [status, setStatus] = useState<{ message: string; tone: Tone }>({
     message: "",
     tone: "muted",
@@ -293,20 +425,42 @@ export default function App() {
       setStatus({ message: String(initial.choice ?? ""), tone: "muted" });
     }
 
+    setStash((native.call("history:get") as StashEntry[]) ?? []);
+
     const offStatus = native.on("status", (p) =>
       setStatus({ message: String(p?.message ?? ""), tone: (p?.tone as Tone) ?? "muted" }),
     );
-    const offState = native.on("downloadState", (p) => setWorking(Boolean(p?.running)));
-    const offDone = native.on("downloadFinished", (p) =>
-      setFileName(p?.ok ? String(p?.fileName ?? "") : ""),
+    const offState = native.on("downloadState", (p) => {
+      setWorking(Boolean(p?.running));
+      if (p?.running) setPercent(null);
+    });
+    const offProgress = native.on("downloadProgress", (p) => setPercent(Number(p?.percent ?? 0)));
+    const offPreview = native.on("preview", (p) =>
+      setPreview({ playing: Boolean(p?.playing), fraction: Number(p?.fraction ?? 0) }),
     );
+    const offDone = native.on("downloadFinished", (p) => {
+      setFileName(p?.ok ? String(p?.fileName ?? "") : "");
+      if (p?.ok) setStash((native.call("history:get") as StashEntry[]) ?? []);
+    });
 
     return () => {
       offStatus();
       offState();
+      offProgress();
+      offPreview();
       offDone();
     };
   }, []);
+
+  const loadStashEntry = (entry: StashEntry) => {
+    const result = native.call("history:load", { path: entry.path });
+    if (result?.ok) setFileName(String(result.fileName ?? entry.name));
+    else setStash((native.call("history:get") as StashEntry[]) ?? []);
+  };
+
+  const removeStashEntry = (entry: StashEntry) => {
+    setStash((native.call("history:remove", { path: entry.path }) as StashEntry[]) ?? []);
+  };
 
   const startDownload = () => {
     if (working) return;
@@ -345,6 +499,17 @@ export default function App() {
         </View>
         <View className="flex-1" />
         <StatusChip message={status.message} tone={status.tone} working={working} />
+        <View
+          className="px-3 h-[24] justify-center rounded-full border border-line bg-lift cursor-pointer hover:border-accent/70"
+          onClick={() => {
+            setStash((native.call("history:get") as StashEntry[]) ?? []);
+            setStashOpen(true);
+          }}
+        >
+          <Text className="text-muted text-[10] font-bold tracking-widest">
+            {`STASH ${stash.length}`}
+          </Text>
+        </View>
       </Enter>
 
       {/* Source card */}
@@ -368,7 +533,7 @@ export default function App() {
           <DownloadButton working={working} onClick={startDownload} />
         </View>
 
-        <ProgressBar working={working} />
+        <ProgressBar working={working} percent={percent} />
 
         <View className="flex-row items-center gap-3">
           <Switch on={clip} disabled={working} onToggle={() => setClip((c) => !c)} />
@@ -376,7 +541,9 @@ export default function App() {
           <View className="flex-1" />
           <Label>START</Label>
           <TextInput
-            className={`w-[96] h-[32] ${fieldClasses} ${!clip || working ? "opacity-40" : ""}`}
+            className={`w-[96] h-[32] ${fieldClasses} ${
+              stashOpen ? "opacity-0" : !clip || working ? "opacity-40" : ""
+            }`}
             style={fieldStyle}
             placeholder="0:30"
             value={start}
@@ -385,7 +552,9 @@ export default function App() {
           />
           <Label>END</Label>
           <TextInput
-            className={`w-[96] h-[32] ${fieldClasses} ${!clip || working ? "opacity-40" : ""}`}
+            className={`w-[96] h-[32] ${fieldClasses} ${
+              stashOpen ? "opacity-0" : !clip || working ? "opacity-40" : ""
+            }`}
             style={fieldStyle}
             placeholder="1:00"
             value={end}
@@ -416,6 +585,28 @@ export default function App() {
           <View className="flex-1" />
           {ready ? (
             <View
+              className={`px-3 h-[22] justify-center rounded-full cursor-pointer ${
+                preview.playing
+                  ? "bg-accent"
+                  : "border border-accent/40 hover:border-accent"
+              }`}
+              onClick={() => {
+                const result = native.call("preview:toggle");
+                if (result)
+                  setPreview((p) => ({ ...p, playing: Boolean(result.playing) }));
+              }}
+            >
+              <Text
+                className={`${
+                  preview.playing ? "text-background" : "text-accent"
+                } text-[10] font-bold tracking-widest`}
+              >
+                {preview.playing ? "PAUSE" : "PLAY"}
+              </Text>
+            </View>
+          ) : null}
+          {ready ? (
+            <View
               className="px-3 h-[22] justify-center rounded-full bg-accent"
               style={{ shadowColor: "#C6F13544", shadowRadius: 14, shadowOffsetY: 2 }}
             >
@@ -431,6 +622,13 @@ export default function App() {
         </View>
 
         <NativeView nativeId="waveform" className="flex-1" />
+
+        {ready ? (
+          <SeekBar
+            fraction={preview.fraction}
+            onSeek={(fraction) => native.call("preview:seek", { fraction })}
+          />
+        ) : null}
       </View>
       </Enter>
 
@@ -441,6 +639,14 @@ export default function App() {
           RENDERED NATIVELY BY VSREACT · REACT 18
         </Text>
       </Enter>
+      {stashOpen ? (
+        <StashDrawer
+          entries={stash}
+          onClose={() => setStashOpen(false)}
+          onLoad={loadStashEntry}
+          onRemove={removeStashEntry}
+        />
+      ) : null}
       </>
       ) : null}
 

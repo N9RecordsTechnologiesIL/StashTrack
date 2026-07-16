@@ -7,6 +7,7 @@
 #include "PluginProcessor.h"
 #include "DownloadUtils.h"
 #include "UpdateUtils.h"
+#include "HistoryStore.h"
 
 #include <atomic>
 #include <thread>
@@ -23,7 +24,8 @@ class WaveformFileDragComponent;
     host file drag (registered as the "waveform" NativeView).
 */
 class YouTubeGrabberAudioProcessorEditor : public juce::AudioProcessorEditor,
-                                           private juce::Thread
+                                           private juce::Thread,
+                                           private juce::Timer
 {
 public:
     explicit YouTubeGrabberAudioProcessorEditor (YouTubeGrabberAudioProcessor&);
@@ -37,6 +39,10 @@ private:
     //==============================================================================
     juce::var handleNativeCall (const juce::String& name, const juce::var& args);
     juce::var startDownloadFromJs (const juce::var& args);
+    juce::var togglePreviewFromJs();
+    juce::var loadHistoryEntryFromJs (const juce::var& args);
+    void pushPreviewState();
+    void timerCallback() override;       // preview position events
     void run() override;                 // background download thread
     void downloadFinished (StashTrack::DownloadJobResult result);
     void startUpdateCheck();
@@ -60,6 +66,7 @@ private:
     StashTrack::DownloadFolderChoice pendingDownloadChoice;
     StashTrack::DownloadOptions pendingDownloadOptions;
     juce::File downloadedFile;
+    StashTrack::HistoryStore history { StashTrack::HistoryStore::defaultStorageFile() };
     std::thread updateCheckThread;
     std::thread updateInstallerThread;
     std::atomic<bool> closing { false };

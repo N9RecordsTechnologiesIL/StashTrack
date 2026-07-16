@@ -55,11 +55,18 @@ public:
     {
         audioFile = file;
         dragStarted = false;
+        playheadFraction = -1.0f;
         thumbnail.clear();
 
         if (audioFile.existsAsFile())
             thumbnail.setSource (new juce::FileInputSource (audioFile));
 
+        repaint();
+    }
+
+    void setPlayheadFraction (float fraction)
+    {
+        playheadFraction = fraction;
         repaint();
     }
 
@@ -97,6 +104,14 @@ public:
             thumbnail.drawChannels (g, area.reduced (4, 4), 0.0, thumbnail.getTotalLength(), 1.0f);
             g.setColour (kAccent);
             thumbnail.drawChannels (g, area.reduced (4, 8), 0.0, thumbnail.getTotalLength(), 0.92f);
+
+            if (playheadFraction >= 0.0f)
+            {
+                const auto inner = area.reduced (4, 4).toFloat();
+                const auto x = inner.getX() + inner.getWidth() * playheadFraction;
+                g.setColour (juce::Colours::white.withAlpha (0.85f));
+                g.fillRect (juce::Rectangle<float> (x - 0.75f, inner.getY(), 1.5f, inner.getHeight()));
+            }
         }
         else
         {
@@ -155,6 +170,7 @@ private:
     juce::AudioThumbnailCache thumbnailCache { 4 };
     juce::AudioThumbnail thumbnail;
     juce::File audioFile;
+    float playheadFraction = -1.0f;
     bool dragStarted = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveformFileDragComponent)
@@ -213,6 +229,8 @@ YouTubeGrabberAudioProcessorEditor::YouTubeGrabberAudioProcessorEditor (
 YouTubeGrabberAudioProcessorEditor::~YouTubeGrabberAudioProcessorEditor()
 {
     closing = true;
+    stopTimer();
+    processorRef.stopPreview();
     stopThread (4000);
 
     if (updateCheckThread.joinable())
@@ -253,8 +271,106 @@ juce::var YouTubeGrabberAudioProcessorEditor::handleNativeCall (const juce::Stri
     if (name == "startDownload")
         return startDownloadFromJs (args);
 
+    if (name == "preview:toggle")
+        return togglePreviewFromJs();
+
+    if (name == "preview:seek")
+    {
+        processorRef.seekPreview (static_cast<double> (args["fraction"]));
+        pushPreviewState();
+        return {};
+    }
+
+    if (name == "history:get")
+        return history.toVar (history.loadExisting());
+
+    if (name == "history:load")
+        return loadHistoryEntryFromJs (args);
+
+    if (name == "history:remove")
+    {
+        history.remove (args["path"].toString());
+        return history.toVar (history.loadExisting());
+    }
+
     jassertfalse;   // unknown native call from JS
     return {};
+}
+
+juce::var YouTubeGrabberAudioProcessorEditor::togglePreviewFromJs()
+{
+    if (processorRef.isPreviewPlaying())
+    {
+        processorRef.stopPreview();
+        stopTimer();
+    }
+    else if (processorRef.hasSample())
+    {
+        processorRef.startPreview();
+        startTimer (100);
+    }
+
+    pushPreviewState();
+
+    auto* result = new juce::DynamicObject();
+    result->setProperty ("playing", processorRef.isPreviewPlaying());
+    return juce::var (result);
+}
+
+juce::var YouTubeGrabberAudioProcessorEditor::loadHistoryEntryFromJs (const juce::var& args)
+{
+    const juce::File file (args["path"].toString());
+    auto* result = new juce::DynamicObject();
+
+    if (! file.existsAsFile())
+    {
+        result->setProperty ("ok", false);
+        setStatus ("That stash entry's file is gone.", "error");
+        return juce::var (result);
+    }
+
+    processorRef.stopPreview();
+    stopTimer();
+
+    downloadedFile = file;
+
+    if (auto* component = waveformComponent())
+        component->setAudioFile (downloadedFile);
+
+    processorRef.loadAudioFile (downloadedFile);
+    pushPreviewState();
+    setStatus ("Loaded from stash: " + file.getFileName(), "accent");
+
+    result->setProperty ("ok", true);
+    result->setProperty ("fileName", file.getFileName());
+    return juce::var (result);
+}
+
+void YouTubeGrabberAudioProcessorEditor::pushPreviewState()
+{
+    if (closing || reactRoot == nullptr)
+        return;
+
+    const auto fraction = processorRef.getPreviewFraction();
+    const auto playing = processorRef.isPreviewPlaying();
+
+    auto* payload = new juce::DynamicObject();
+    payload->setProperty ("playing", playing);
+    payload->setProperty ("fraction", fraction);
+    reactRoot->sendNativeEvent ("preview", juce::var (payload));
+
+    if (auto* component = waveformComponent())
+        component->setPlayheadFraction (processorRef.hasSample() ? static_cast<float> (fraction)
+                                                                 : -1.0f);
+}
+
+void YouTubeGrabberAudioProcessorEditor::timerCallback()
+{
+    pushPreviewState();
+
+    // The transport stops itself at the end of the file.
+    if (! processorRef.isPreviewPlaying())
+        stopTimer();
 }
 
 juce::var YouTubeGrabberAudioProcessorEditor::startDownloadFromJs (const juce::var& args)
@@ -303,6 +419,8 @@ juce::var YouTubeGrabberAudioProcessorEditor::startDownloadFromJs (const juce::v
     pendingDownloadOptions.section = sectionValidation.section;
 
     downloadedFile = {};
+    processorRef.stopPreview();
+    stopTimer();
 
     if (auto* component = waveformComponent())
         component->setAudioFile ({});
@@ -327,9 +445,23 @@ void YouTubeGrabberAudioProcessorEditor::run()
     const auto url = pendingUrl;
     const auto downloadFolder = pendingDownloadChoice.folder;
     const auto options = pendingDownloadOptions;
-    auto result = StashTrack::downloadAudioWithYtDlp (url, downloadFolder, options);
 
     juce::Component::SafePointer<YouTubeGrabberAudioProcessorEditor> safeThis (this);
+
+    const auto onProgress = [safeThis] (float percent)
+    {
+        juce::MessageManager::callAsync ([safeThis, percent]
+        {
+            if (safeThis == nullptr || safeThis->closing || safeThis->reactRoot == nullptr)
+                return;
+
+            auto* payload = new juce::DynamicObject();
+            payload->setProperty ("percent", percent);
+            safeThis->reactRoot->sendNativeEvent ("downloadProgress", juce::var (payload));
+        });
+    };
+
+    auto result = StashTrack::downloadAudioWithYtDlp (url, downloadFolder, options, onProgress);
 
     juce::MessageManager::callAsync ([safeThis, result]() mutable
     {
@@ -360,6 +492,12 @@ void YouTubeGrabberAudioProcessorEditor::downloadFinished (StashTrack::DownloadJ
 
         if (auto* component = waveformComponent())
             component->setAudioFile (downloadedFile);
+
+        history.add (downloadedFile, juce::Time::currentTimeMillis());
+        processorRef.stopPreview();
+        stopTimer();
+        processorRef.loadAudioFile (downloadedFile);
+        pushPreviewState();
 
         sendFinished (true, downloadedFile.getFileName());
         setStatus ((pendingDownloadOptions.section.enabled ? "Clip ready: " : "Ready: ")

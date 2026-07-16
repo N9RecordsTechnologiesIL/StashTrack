@@ -600,9 +600,44 @@ juce::File findNewestSupportedAudioFile (const juce::File& downloadFolder)
     return newest;
 }
 
+float parseYtDlpProgressPercent (const juce::String& chunk)
+{
+    // yt-dlp rewrites its progress line with \r, so a read chunk may contain
+    // several "[download]  NN.N%" segments — the last one wins.
+    float percent = -1.0f;
+    int searchFrom = 0;
+
+    for (;;)
+    {
+        const auto tag = chunk.indexOf (searchFrom, "[download]");
+
+        if (tag < 0)
+            break;
+
+        const auto percentSign = chunk.indexOf (tag, "%");
+
+        if (percentSign < 0)
+            break;
+
+        const auto number = chunk.substring (tag + 10, percentSign).trim();
+
+        if (number.isNotEmpty()
+            && number.containsOnly ("0123456789.")
+            && number.indexOfChar ('.') == number.lastIndexOfChar ('.'))
+        {
+            percent = juce::jlimit (0.0f, 100.0f, number.getFloatValue());
+        }
+
+        searchFrom = percentSign + 1;
+    }
+
+    return percent;
+}
+
 DownloadJobResult downloadAudioWithYtDlp (const juce::String& url,
                                           const juce::File& downloadFolder,
-                                          const DownloadOptions& options)
+                                          const DownloadOptions& options,
+                                          const DownloadProgressCallback& onProgress)
 {
     DownloadJobResult result;
 
@@ -627,7 +662,37 @@ DownloadJobResult downloadAudioWithYtDlp (const juce::String& url,
         return result;
     }
 
-    result.processOutput = process.readAllProcessOutput();
+    // Read incrementally so progress lines surface while downloading.
+    juce::MemoryOutputStream collected;
+    char buffer[4096];
+
+    for (;;)
+    {
+        const auto bytesRead = process.readProcessOutput (buffer, sizeof (buffer));
+
+        if (bytesRead <= 0)
+        {
+            if (! process.isRunning())
+                break;
+
+            juce::Thread::sleep (25);
+            continue;
+        }
+
+        collected.write (buffer, static_cast<size_t> (bytesRead));
+
+        if (onProgress != nullptr)
+        {
+            const auto chunk = juce::String::fromUTF8 (buffer, bytesRead);
+            const auto percent = parseYtDlpProgressPercent (chunk);
+
+            if (percent >= 0.0f)
+                onProgress (percent);
+        }
+    }
+
+    process.waitForProcessToFinish (5000);
+    result.processOutput = collected.toString();
     result.exitCode = process.getExitCode();
 
     const auto analysis = analyseYtDlpOutput (result.processOutput, downloadFolder);
@@ -665,8 +730,15 @@ DownloadJobResult downloadAudioWithYtDlp (const juce::String& url,
 }
 
 DownloadJobResult downloadAudioWithYtDlp (const juce::String& url,
+                                          const juce::File& downloadFolder,
+                                          const DownloadOptions& options)
+{
+    return downloadAudioWithYtDlp (url, downloadFolder, options, nullptr);
+}
+
+DownloadJobResult downloadAudioWithYtDlp (const juce::String& url,
                                           const juce::File& downloadFolder)
 {
-    return downloadAudioWithYtDlp (url, downloadFolder, {});
+    return downloadAudioWithYtDlp (url, downloadFolder, {}, nullptr);
 }
 }

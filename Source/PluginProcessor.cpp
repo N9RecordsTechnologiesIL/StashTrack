@@ -75,11 +75,58 @@ bool YouTubeGrabberAudioProcessor::loadAudioFile (const juce::File& file)
         readerSource = std::move (newSource);
         transportSource.setSource (readerSource.get(), 32768, &readAheadThread, sourceSampleRate);
         transportSource.setPosition (0.0);
-        transportSource.start();
     }
 
     hasLoadedAudio = true;
     return true;
+}
+
+//==============================================================================
+void YouTubeGrabberAudioProcessor::startPreview()
+{
+    if (! hasLoadedAudio.load())
+        return;
+
+    const juce::ScopedLock sl (transportLock);
+
+    // Restart from the top when a previous preview ran to the end.
+    if (transportSource.hasStreamFinished()
+        || transportSource.getCurrentPosition() >= transportSource.getLengthInSeconds())
+        transportSource.setPosition (0.0);
+
+    transportSource.start();
+}
+
+void YouTubeGrabberAudioProcessor::stopPreview()
+{
+    const juce::ScopedLock sl (transportLock);
+    transportSource.stop();
+}
+
+bool YouTubeGrabberAudioProcessor::isPreviewPlaying() const
+{
+    const juce::ScopedLock sl (transportLock);
+    return transportSource.isPlaying();
+}
+
+double YouTubeGrabberAudioProcessor::getPreviewFraction() const
+{
+    const juce::ScopedLock sl (transportLock);
+    const auto length = transportSource.getLengthInSeconds();
+
+    if (length <= 0.0)
+        return 0.0;
+
+    return juce::jlimit (0.0, 1.0, transportSource.getCurrentPosition() / length);
+}
+
+void YouTubeGrabberAudioProcessor::seekPreview (double fraction)
+{
+    const juce::ScopedLock sl (transportLock);
+    const auto length = transportSource.getLengthInSeconds();
+
+    if (length > 0.0)
+        transportSource.setPosition (juce::jlimit (0.0, 1.0, fraction) * length);
 }
 
 //==============================================================================

@@ -81,6 +81,17 @@ namespace StashTrack
     YtDlpOutputAnalysis analyseYtDlpOutput (const juce::String& output,
                                             const juce::File& downloadFolder);
     juce::File findNewestSupportedAudioFile (const juce::File& downloadFolder);
+
+    /** Last "[download]  NN.N%" percentage found in a chunk of yt-dlp output
+        (handles \r-separated progress rewrites), or -1 when none present. */
+    float parseYtDlpProgressPercent (const juce::String& chunk);
+
+    using DownloadProgressCallback = std::function<void (float percent)>;
+
+    DownloadJobResult downloadAudioWithYtDlp (const juce::String& url,
+                                              const juce::File& downloadFolder,
+                                              const DownloadOptions& options,
+                                              const DownloadProgressCallback& onProgress);
     DownloadJobResult downloadAudioWithYtDlp (const juce::String& url,
                                               const juce::File& downloadFolder,
                                               const DownloadOptions& options);

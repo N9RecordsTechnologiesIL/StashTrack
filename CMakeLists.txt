@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(StashTrack VERSION 0.7.0)
+project(StashTrack VERSION 0.8.0)
 
 # Pull in JUCE. This workspace has JUCE downloaded next to this project at
 # H:/code/VSTs/JUCE, but the cache variable lets other machines point at their
@@ -46,6 +46,7 @@ target_sources(StashTrack
     PRIVATE
         Source/DownloadUtils.cpp
         Source/UpdateUtils.cpp
+        Source/HistoryStore.cpp
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp)
 
@@ -104,6 +105,25 @@ else()
     message(STATUS "Bun was not found; run jsui-vsreact builds manually after installing Bun.")
 endif()
 
+juce_add_console_app(StashTrackUiProbe
+    PRODUCT_NAME "StashTrackUiProbe")
+
+target_sources(StashTrackUiProbe PRIVATE Tools/UiProbe.cpp)
+
+target_compile_definitions(StashTrackUiProbe
+    PRIVATE
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_MODAL_LOOPS_PERMITTED=1)
+
+target_link_libraries(StashTrackUiProbe
+    PRIVATE
+        vsreact
+        juce::juce_gui_extra
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags)
+
 juce_add_console_app(StashTrackTests
     PRODUCT_NAME "StashTrack Tests")
 
@@ -111,6 +131,7 @@ target_sources(StashTrackTests
     PRIVATE
         Source/DownloadUtils.cpp
         Source/UpdateUtils.cpp
+        Source/HistoryStore.cpp
         Tests/DownloadUtilsTests.cpp)
 
 target_compile_definitions(StashTrackTests

@@ -51,10 +51,19 @@ public:
     //==============================================================================
     // Called by the editor once a file has been downloaded.
     // Returns true if the file was decoded and loaded successfully.
+    // Loading does NOT start playback — that's startPreview().
     bool loadAudioFile (const juce::File& file);
 
     // Whether a sample is currently loaded and ready to play.
     bool hasSample() const noexcept { return hasLoadedAudio; }
+
+    //==============================================================================
+    // Preview transport, driven by the editor's React UI.
+    void startPreview();
+    void stopPreview();
+    bool isPreviewPlaying() const;
+    double getPreviewFraction() const;      // 0..1 through the loaded file
+    void seekPreview (double fraction);
 
 private:
     juce::AudioFormatManager formatManager;

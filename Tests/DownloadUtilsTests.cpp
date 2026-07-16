@@ -2,6 +2,7 @@
 
 #include "../Source/DownloadUtils.h"
 #include "../Source/UpdateUtils.h"
+#include "../Source/HistoryStore.h"
 
 #include <iostream>
 
@@ -16,6 +17,58 @@ namespace
             ++failures;
             std::cerr << "FAIL: " << message << std::endl;
         }
+    }
+
+    void parsesYtDlpProgressPercents()
+    {
+        using StashTrack::parseYtDlpProgressPercent;
+
+        expect (parseYtDlpProgressPercent ("[download]  45.2% of 3.5MiB at 1.2MiB/s") == 45.2f,
+                "plain progress line should parse");
+        expect (parseYtDlpProgressPercent ("[download]  10.0% of x\r[download]  62.8% of x") == 62.8f,
+                "last percent in a \\r chunk should win");
+        expect (parseYtDlpProgressPercent ("[ExtractAudio] Destination: song.wav") < 0.0f,
+                "chunks without progress should return -1");
+        expect (parseYtDlpProgressPercent ("[download] Destination: song.webm") < 0.0f,
+                "download lines without a percent should return -1");
+        expect (parseYtDlpProgressPercent ("[download] 100% of 3.50MiB in 00:02") == 100.0f,
+                "completion line should parse as 100");
+    }
+
+    void historyStoreRoundTrips()
+    {
+        const auto dir = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                             .getChildFile ("StashTrackHistoryTests");
+        dir.deleteRecursively();
+        dir.createDirectory();
+
+        const auto fileA = dir.getChildFile ("a.wav");
+        const auto fileB = dir.getChildFile ("b.wav");
+        fileA.replaceWithText ("x");
+        fileB.replaceWithText ("x");
+
+        StashTrack::HistoryStore store (dir.getChildFile ("history.json"));
+
+        store.add (fileA, 1000);
+        store.add (fileB, 2000);
+        store.add (fileA, 3000);   // re-adding fronts the entry, no duplicate
+
+        auto entries = store.load();
+        expect (entries.size() == 2, "history should dedupe by path");
+        expect (entries[0].path == fileA.getFullPathName(), "newest entry should be first");
+        expect (entries[0].addedMs == 3000, "re-add should refresh the timestamp");
+        expect (entries[1].name == "b.wav", "entry should keep the file name");
+
+        // Pruning drops entries whose file vanished, and persists that.
+        fileB.deleteFile();
+        entries = store.loadExisting();
+        expect (entries.size() == 1, "pruning should drop missing files");
+        expect (store.load().size() == 1, "pruning should persist");
+
+        store.remove (fileA.getFullPathName());
+        expect (store.load().isEmpty(), "remove should delete the entry");
+
+        dir.deleteRecursively();
     }
 
     void commandContainsExpectedYtDlpOptions()
@@ -537,6 +590,8 @@ int main()
     commandPrefersBundledYtDlpForYoutubeEjsWhenAvailable();
     uvxFallbackDoesNotUseBundledDenoOnlyOptions();
     rejectsEmptyAndNonHttpUrls();
+    parsesYtDlpProgressPercents();
+    historyStoreRoundTrips();
     parsesErrorLinesFromYtDlpOutput();
     parsesYtDlpCliErrorLines();
     extractsPrintedDownloadedFileFromOutput();
