@@ -1,0 +1,156 @@
+name: Release
+
+# Builds distributables for every platform when a version tag is pushed
+# (or on demand) and attaches them to the GitHub release for that tag.
+#
+#   Windows: full Inno Setup installer (bundles yt-dlp/ffmpeg/deno/uv/VC++).
+#   macOS:   unsigned .pkg installing the VST3 (tools via brew, not bundled).
+#   Linux:   tar.gz with the VST3 + install.sh (tools via apt, not bundled).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and upload assets for (e.g. v0.8)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+jobs:
+  windows-installer:
+    name: Windows installer
+    runs-on: blacksmith-8vcpu-windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: carmanagercompany/VSReacT
+          token: ${{ secrets.VSREACT_CHECKOUT_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          path: StashTrack
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/checkout@v4
+        with:
+          repository: juce-framework/JUCE
+          ref: "8.0.4"
+          path: JUCE
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Prime workspace bun install
+        run: bun install
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File StashTrack/installer/windows/build-installer.ps1 `
+            -Configuration Release -JuceDir "${{ github.workspace }}/JUCE"
+
+      - name: Upload assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ env.RELEASE_TAG }}"
+          $versioned = Get-ChildItem StashTrack/dist/StashTrackv*Setup.exe | Select-Object -First 1
+          Copy-Item $versioned.FullName StashTrack/dist/StashTrackSetup.exe -Force
+          gh release create $tag --repo carmanagercompany/StashTrack --title "StashTrack $tag" --notes "Automated multi-platform build." 2>$null
+          gh release upload $tag $versioned.FullName StashTrack/dist/StashTrackSetup.exe --repo carmanagercompany/StashTrack --clobber
+
+  macos-pkg:
+    name: macOS pkg
+    runs-on: blacksmith-6vcpu-macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: carmanagercompany/VSReacT
+          token: ${{ secrets.VSREACT_CHECKOUT_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          path: StashTrack
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/checkout@v4
+        with:
+          repository: juce-framework/JUCE
+          ref: "8.0.4"
+          path: JUCE
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Build UI bundle
+        run: |
+          bun install
+          cd StashTrack/jsui-vsreact
+          bun run build
+
+      - name: Build VST3 (embedded bundle)
+        run: |
+          cmake -S StashTrack -B build -DCMAKE_BUILD_TYPE=Release \
+            -DJUCE_SOURCE_DIR="${{ github.workspace }}/JUCE" -DSTASHTRACK_VSREACT_DEV=OFF
+          cmake --build build --target StashTrack_VST3 --config Release --parallel 4
+
+      - name: Package + upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ env.RELEASE_TAG }}"
+          VERSION="${TAG#v}"
+          VST3=$(find build -type d -name "StashTrack.vst3" | head -n 1)
+          sh StashTrack/installer/macos/build-pkg.sh "$VST3" "$VERSION" dist
+          cp "dist/StashTrackv${VERSION}-macOS.pkg" "dist/StashTrack-macOS.pkg"
+          gh release create "$TAG" --repo carmanagercompany/StashTrack --title "StashTrack $TAG" --notes "Automated multi-platform build." 2>/dev/null || true
+          gh release upload "$TAG" "dist/StashTrackv${VERSION}-macOS.pkg" "dist/StashTrack-macOS.pkg" --repo carmanagercompany/StashTrack --clobber
+
+  linux-tarball:
+    name: Linux tarball
+    runs-on: blacksmith-8vcpu-ubuntu-2204
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: carmanagercompany/VSReacT
+          token: ${{ secrets.VSREACT_CHECKOUT_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          path: StashTrack
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/checkout@v4
+        with:
+          repository: juce-framework/JUCE
+          ref: "8.0.4"
+          path: JUCE
+      - uses: oven-sh/setup-bun@v2
+
+      - name: JUCE build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libfreetype6-dev libfontconfig1-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev \
+            libxrandr-dev libxrender-dev pkg-config
+
+      - name: Build UI bundle
+        run: |
+          bun install
+          cd StashTrack/jsui-vsreact
+          bun run build
+
+      - name: Build VST3 (embedded bundle)
+        run: |
+          cmake -S StashTrack -B build -DCMAKE_BUILD_TYPE=Release \
+            -DJUCE_SOURCE_DIR="${{ github.workspace }}/JUCE" -DSTASHTRACK_VSREACT_DEV=OFF
+          cmake --build build --target StashTrack_VST3 --config Release --parallel 4
+
+      - name: Package + upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ env.RELEASE_TAG }}"
+          VERSION="${TAG#v}"
+          VST3=$(find build -type d -name "StashTrack.vst3" | head -n 1)
+          sh StashTrack/installer/linux/build-tarball.sh "$VST3" "$VERSION" dist
+          cp "dist/StashTrackv${VERSION}-linux-x86_64.tar.gz" "dist/StashTrack-linux-x86_64.tar.gz"
+          gh release create "$TAG" --repo carmanagercompany/StashTrack --title "StashTrack $TAG" --notes "Automated multi-platform build." 2>/dev/null || true
+          gh release upload "$TAG" "dist/StashTrackv${VERSION}-linux-x86_64.tar.gz" "dist/StashTrack-linux-x86_64.tar.gz" --repo carmanagercompany/StashTrack --clobber

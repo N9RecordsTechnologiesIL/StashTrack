@@ -8,13 +8,13 @@ on:
 jobs:
   build-and-test:
     name: Plugin + tests (Windows)
-    runs-on: windows-latest
+    runs-on: blacksmith-8vcpu-windows-2025
     steps:
       # Recreate the local two-repo layout: the VSReacT framework repo is the
       # workspace root (it gitignores StashTrack/), StashTrack nests inside it.
       - uses: actions/checkout@v4
         with:
-          repository: davad00/VSReacT
+          repository: carmanagercompany/VSReacT
           token: ${{ secrets.VSREACT_CHECKOUT_TOKEN }}
       - uses: actions/checkout@v4
         with:

@@ -1,4 +1,4 @@
-const GITHUB_REPO = 'davad00/StashTrack'
+﻿const GITHUB_REPO = 'carmanagercompany/StashTrack'
 const LATEST_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`
 const LATEST_RELEASE_PAGE_URL = `https://github.com/${GITHUB_REPO}/releases/latest`
 const STABLE_INSTALLER_ASSET_NAME = 'StashTrackSetup.exe'

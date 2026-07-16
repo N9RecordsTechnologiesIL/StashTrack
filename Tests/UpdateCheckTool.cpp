@@ -1,4 +1,4 @@
-// Manual diagnostic: runs the real update-check pipeline against the live
+﻿// Manual diagnostic: runs the real update-check pipeline against the live
 // GitHub release and prints every intermediate result. Not part of CTest.
 //   UpdateCheckTool.exe [currentVersion]
 
@@ -14,7 +14,7 @@ int main (int argc, char* argv[])
     // Raw fetch with full diagnostics, mirroring createGithubInputStream.
     {
         int statusCode = 0;
-        auto stream = juce::URL ("https://api.github.com/repos/davad00/StashTrack/releases/latest")
+        auto stream = juce::URL ("https://api.github.com/repos/carmanagercompany/StashTrack/releases/latest")
             .createInputStream (
                 juce::URL::InputStreamOptions (juce::URL::ParameterHandling::inAddress)
                     .withConnectionTimeoutMs (15000)

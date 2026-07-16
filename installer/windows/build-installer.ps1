@@ -5,6 +5,8 @@ param(
 
     [string] $BuildDir,
 
+    [string] $JuceDir = "H:/code/VSTs/JUCE",
+
     [switch] $SkipVstBuild,
 
     [switch] $ForceDownloads
@@ -396,7 +398,8 @@ if (-not $SkipVstBuild) {
     }
 
     Write-Host "Configuring with the UI bundle embedded (STASHTRACK_VSREACT_DEV=OFF)..."
-    cmake -S $root -B $BuildDir -DSTASHTRACK_VSREACT_DEV=OFF
+    cmake -S $root -B $BuildDir -G "Visual Studio 17 2022" -A x64 `
+        -DJUCE_SOURCE_DIR="$JuceDir" -DSTASHTRACK_VSREACT_DEV=OFF
 
     if ($LASTEXITCODE -ne 0) {
         throw "CMake configure failed with exit code $LASTEXITCODE."

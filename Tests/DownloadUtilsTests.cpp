@@ -490,7 +490,7 @@ namespace
         const auto release = StashTrack::parseLatestReleaseJson (R"json(
             {
               "tag_name": "v0.5",
-              "html_url": "https://github.com/davad00/StashTrack/releases/tag/v0.5",
+              "html_url": "https://github.com/carmanagercompany/StashTrack/releases/tag/v0.5",
               "assets": [
                 {
                   "name": "Source.zip",
@@ -498,7 +498,7 @@ namespace
                 },
                 {
                   "name": "StashTrackv0.5Setup.exe",
-                  "browser_download_url": "https://github.com/davad00/StashTrack/releases/download/v0.5/StashTrackv0.5Setup.exe"
+                  "browser_download_url": "https://github.com/carmanagercompany/StashTrack/releases/download/v0.5/StashTrackv0.5Setup.exe"
                 }
               ]
             }
@@ -515,7 +515,7 @@ namespace
     void releaseInfoExposesHttpsChangelogUrl()
     {
         StashTrack::LatestReleaseInfo release;
-        release.releasePageUrl = " https://github.com/davad00/StashTrack/releases/tag/v0.6 ";
+        release.releasePageUrl = " https://github.com/carmanagercompany/StashTrack/releases/tag/v0.6 ";
 
         expect (StashTrack::getReleaseChangelogUrl (release).endsWith ("/v0.6"),
                 "updater prompt should expose the GitHub release page as the changelog URL");
@@ -558,22 +558,22 @@ namespace
     void extractsTagFromReleaseRedirectUrls()
     {
         expect (StashTrack::extractTagFromReleaseUrl (
-                    "https://github.com/davad00/StashTrack/releases/tag/v0.7") == "v0.7",
+                    "https://github.com/carmanagercompany/StashTrack/releases/tag/v0.7") == "v0.7",
                 "tag extractor should read the tag from a release page URL");
 
         expect (StashTrack::extractTagFromReleaseUrl (
-                    "https://github.com/davad00/StashTrack/releases/tag/v0.7?foo=1#notes") == "v0.7",
+                    "https://github.com/carmanagercompany/StashTrack/releases/tag/v0.7?foo=1#notes") == "v0.7",
                 "tag extractor should strip query strings and fragments");
 
         expect (StashTrack::extractTagFromReleaseUrl (
-                    "https://github.com/davad00/StashTrack/releases/latest").isEmpty(),
+                    "https://github.com/carmanagercompany/StashTrack/releases/latest").isEmpty(),
                 "tag extractor should reject URLs without a /releases/tag/ segment");
     }
 
     void redirectFallbackBuildsValidReleaseInfo()
     {
         const auto info = StashTrack::releaseInfoFromTagUrl (
-            "https://github.com/davad00/StashTrack/releases/tag/v0.7");
+            "https://github.com/carmanagercompany/StashTrack/releases/tag/v0.7");
 
         expect (info.valid, "redirect fallback should produce a valid release");
         expect (info.versionTag == "v0.7", "redirect fallback should keep the tag");

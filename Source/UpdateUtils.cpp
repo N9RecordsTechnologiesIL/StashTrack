@@ -1,11 +1,11 @@
-#include "UpdateUtils.h"
+﻿#include "UpdateUtils.h"
 #include "DownloadUtils.h"
 
 namespace StashTrack
 {
 namespace
 {
-    constexpr auto latestReleaseApiUrl = "https://api.github.com/repos/davad00/StashTrack/releases/latest";
+    constexpr auto latestReleaseApiUrl = "https://api.github.com/repos/carmanagercompany/StashTrack/releases/latest";
     constexpr auto githubHeaders = "Accept: application/vnd.github+json\r\n"
                                    "User-Agent: StashTrack-Updater\r\n";
 
@@ -163,7 +163,7 @@ LatestReleaseInfo releaseInfoFromTagUrl (const juce::String& tagPageUrl)
     info.versionTag = tag;
     info.releasePageUrl = tagPageUrl.trim();
     // The stable versionless asset always resolves to the newest release.
-    info.installerUrl = "https://github.com/davad00/StashTrack/releases/latest/download/StashTrackSetup.exe";
+    info.installerUrl = "https://github.com/carmanagercompany/StashTrack/releases/latest/download/StashTrackSetup.exe";
     info.valid = true;
     return info;
 }
@@ -176,7 +176,7 @@ namespace
         page, and the tag can be read from the Location header. */
     LatestReleaseInfo fetchLatestReleaseInfoViaRedirect()
     {
-        const juce::URL url ("https://github.com/davad00/StashTrack/releases/latest");
+        const juce::URL url ("https://github.com/carmanagercompany/StashTrack/releases/latest");
 
         int statusCode = 0;
         auto stream = url.createInputStream (
