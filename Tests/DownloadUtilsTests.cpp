@@ -495,6 +495,37 @@ namespace
         expect (file.getFileName() == "StashTrackv0.5Setup.exe",
                 "updater installer filename should include the release tag");
     }
+
+    void extractsTagFromReleaseRedirectUrls()
+    {
+        expect (StashTrack::extractTagFromReleaseUrl (
+                    "https://github.com/davad00/StashTrack/releases/tag/v0.7") == "v0.7",
+                "tag extractor should read the tag from a release page URL");
+
+        expect (StashTrack::extractTagFromReleaseUrl (
+                    "https://github.com/davad00/StashTrack/releases/tag/v0.7?foo=1#notes") == "v0.7",
+                "tag extractor should strip query strings and fragments");
+
+        expect (StashTrack::extractTagFromReleaseUrl (
+                    "https://github.com/davad00/StashTrack/releases/latest").isEmpty(),
+                "tag extractor should reject URLs without a /releases/tag/ segment");
+    }
+
+    void redirectFallbackBuildsValidReleaseInfo()
+    {
+        const auto info = StashTrack::releaseInfoFromTagUrl (
+            "https://github.com/davad00/StashTrack/releases/tag/v0.7");
+
+        expect (info.valid, "redirect fallback should produce a valid release");
+        expect (info.versionTag == "v0.7", "redirect fallback should keep the tag");
+        expect (info.installerUrl.endsWith ("releases/latest/download/StashTrackSetup.exe"),
+                "redirect fallback should point at the stable versionless installer asset");
+        expect (StashTrack::isVersionNewer ("0.6.0", info.versionTag),
+                "a 0.6.0 install should see the fallback v0.7 release as newer");
+
+        expect (! StashTrack::releaseInfoFromTagUrl ("https://example.com/whatever").valid,
+                "redirect fallback should reject non-release URLs");
+    }
 }
 
 int main()
@@ -522,6 +553,8 @@ int main()
     releaseInfoExposesHttpsChangelogUrl();
     rejectsReleaseJsonWithoutInstaller();
     updaterDownloadFileUsesDownloadsFolderAndVersion();
+    extractsTagFromReleaseRedirectUrls();
+    redirectFallbackBuildsValidReleaseInfo();
 
     if (failures == 0)
     {

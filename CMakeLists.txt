@@ -132,6 +132,18 @@ endif()
 
 add_test(NAME StashTrackDownloadUtils COMMAND StashTrackTests)
 
+# Manual diagnostic for the live GitHub update check (not part of CTest).
+juce_add_console_app(StashTrackUpdateCheckTool PRODUCT_NAME "UpdateCheckTool")
+target_sources(StashTrackUpdateCheckTool PRIVATE
+    Source/DownloadUtils.cpp
+    Source/UpdateUtils.cpp
+    Tests/UpdateCheckTool.cpp)
+target_compile_definitions(StashTrackUpdateCheckTool PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0)
+target_link_libraries(StashTrackUpdateCheckTool PRIVATE juce::juce_core
+    PUBLIC juce::juce_recommended_config_flags)
+
 if (WIN32)
     find_program(POWERSHELL_EXECUTABLE NAMES powershell pwsh)
 

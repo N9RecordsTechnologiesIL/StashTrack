@@ -138,9 +138,78 @@ LatestReleaseInfo parseLatestReleaseJson (const juce::String& jsonText)
     return info;
 }
 
+juce::String extractTagFromReleaseUrl (const juce::String& url)
+{
+    const auto marker = juce::String ("/releases/tag/");
+    const auto index = url.indexOf (marker);
+
+    if (index < 0)
+        return {};
+
+    return url.substring (index + marker.length()).trim()
+              .upToFirstOccurrenceOf ("?", false, false)
+              .upToFirstOccurrenceOf ("#", false, false)
+              .trimCharactersAtEnd ("/");
+}
+
+LatestReleaseInfo releaseInfoFromTagUrl (const juce::String& tagPageUrl)
+{
+    LatestReleaseInfo info;
+    const auto tag = extractTagFromReleaseUrl (tagPageUrl);
+
+    if (tag.isEmpty())
+        return info;
+
+    info.versionTag = tag;
+    info.releasePageUrl = tagPageUrl.trim();
+    // The stable versionless asset always resolves to the newest release.
+    info.installerUrl = "https://github.com/davad00/StashTrack/releases/latest/download/StashTrackSetup.exe";
+    info.valid = true;
+    return info;
+}
+
+namespace
+{
+    /** Fallback that sidesteps the GitHub API's 60-requests-per-hour-per-IP
+        unauthenticated rate limit: the plain web URL
+        github.com/<repo>/releases/latest redirects to the newest release-tag
+        page, and the tag can be read from the Location header. */
+    LatestReleaseInfo fetchLatestReleaseInfoViaRedirect()
+    {
+        const juce::URL url ("https://github.com/davad00/StashTrack/releases/latest");
+
+        int statusCode = 0;
+        auto stream = url.createInputStream (
+            juce::URL::InputStreamOptions (juce::URL::ParameterHandling::inAddress)
+                .withConnectionTimeoutMs (15000)
+                .withNumRedirectsToFollow (0)
+                .withExtraHeaders ("User-Agent: StashTrack-Updater\r\n")
+                .withStatusCode (&statusCode));
+
+        if (auto* webStream = dynamic_cast<juce::WebInputStream*> (stream.get()))
+        {
+            if (statusCode >= 300 && statusCode < 400)
+            {
+                const auto headers = webStream->getResponseHeaders();
+
+                for (const auto& key : headers.getAllKeys())
+                    if (key.equalsIgnoreCase ("location"))
+                        return releaseInfoFromTagUrl (headers[key]);
+            }
+        }
+
+        return {};
+    }
+}
+
 LatestReleaseInfo fetchLatestReleaseInfo()
 {
-    return parseLatestReleaseJson (downloadText (latestReleaseApiUrl));
+    auto info = parseLatestReleaseJson (downloadText (latestReleaseApiUrl));
+
+    if (! info.valid)
+        info = fetchLatestReleaseInfoViaRedirect();
+
+    return info;
 }
 
 UpdateCheckResult checkForUpdate (const juce::String& currentVersion)

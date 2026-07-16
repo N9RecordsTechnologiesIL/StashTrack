@@ -1,5 +1,14 @@
-import { useEffect, useState } from "react";
-import { View, Text, TextInput, NativeView, native } from "@vsreact/core";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  NativeView,
+  native,
+  useTween,
+  lerp,
+  Easing,
+} from "@vsreact/core";
 
 type Tone = "muted" | "accent" | "error";
 
@@ -138,6 +147,132 @@ const fieldClasses =
   "bg-well border border-line focus:border-accent rounded-lg px-3 font-mono text-[13] text-text";
 const fieldStyle = { placeholderColor: "#5A6253", caretColor: "#C6F135" };
 
+//==============================================================================
+// Splash
+
+/** One rising splash bar with a staggered, overshooting entrance. */
+function SplashBar({ height, delay }: { height: number; delay: number }) {
+  const t = useTween({ duration: 620, delay, easing: Easing.outBack });
+
+  return (
+    <View
+      className="w-[7] rounded-full bg-accent"
+      style={{ height: Math.max(2, lerp(2, height, t)), opacity: Math.min(1, t * 2) }}
+    />
+  );
+}
+
+/** One wordmark letter fading up into place. */
+function SplashLetter({ letter, index }: { letter: string; index: number }) {
+  const t = useTween({ duration: 460, delay: 420 + index * 45, easing: Easing.outCubic });
+
+  return (
+    <Text
+      className="text-text text-[24] font-bold tracking-widest"
+      style={{ opacity: t, marginTop: lerp(12, 0, t) }}
+    >
+      {letter}
+    </Text>
+  );
+}
+
+function Splash({
+  version,
+  onReveal,
+  onDone,
+}: {
+  version: string;
+  onReveal: () => void;
+  onDone: () => void;
+}) {
+  // Logo tile glow breathes in.
+  const glow = useTween({ duration: 900, easing: Easing.outCubic });
+  // Accent hairline sweeps out from the middle.
+  const line = useTween({ duration: 550, delay: 1050, easing: Easing.outQuint });
+  // Caption fade.
+  const caption = useTween({ duration: 420, delay: 1250, easing: Easing.outCubic });
+  // Fade the splash CONTENT to black first, then unmount and let the main UI
+  // stagger in on a clean backdrop — no mid-fade bleed-through.
+  const fade = useTween({
+    duration: 380,
+    delay: 2050,
+    easing: Easing.inOutCubic,
+    onComplete: () => {
+      onReveal();
+      onDone();
+    },
+  });
+
+  const skip = () => {
+    onReveal();
+    onDone();
+  };
+
+  return (
+    <View
+      className="absolute inset-0 bg-background items-center justify-center cursor-pointer"
+      style={{ opacity: 1 }}
+      onClick={skip}
+    >
+    <View className="items-center justify-center" style={{ opacity: 1 - fade }}>
+      {/* logo tile */}
+      <View
+        className="w-[86] h-[86] rounded-2xl bg-accent/10 border border-accent/25 flex-row items-end justify-center gap-[6] pb-[18]"
+        style={{
+          shadowColor: "#C6F13530",
+          shadowRadius: lerp(4, 34, glow),
+          shadowOffsetY: 0,
+          opacity: Math.min(1, glow * 2.5),
+        }}
+      >
+        <SplashBar height={22} delay={120} />
+        <SplashBar height={40} delay={240} />
+        <SplashBar height={30} delay={360} />
+      </View>
+
+      {/* wordmark */}
+      <View className="flex-row mt-5 h-[30]">
+        {"STASHTRACK".split("").map((letter, i) => (
+          <SplashLetter key={i} letter={letter} index={i} />
+        ))}
+      </View>
+
+      {/* hairline sweep */}
+      <View className="h-[2] rounded-full bg-accent mt-4" style={{ width: lerp(0, 190, line) }} />
+
+      {/* caption */}
+      <View className="flex-row items-center gap-2 mt-4" style={{ opacity: caption }}>
+        <Text className="text-faint text-[10] tracking-widest">N9 RECORDS</Text>
+        {version !== "" ? (
+          <View className="px-2 h-[16] justify-center rounded-full border border-line bg-lift">
+            <Text className="text-muted text-[9] font-mono">{`v${version}`}</Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+    </View>
+  );
+}
+
+/** Fade-and-rise entrance wrapper for the main UI sections. */
+function Enter({
+  delay,
+  className,
+  children,
+}: {
+  delay: number;
+  className?: string;
+  children?: ReactNode;
+}) {
+  const t = useTween({ duration: 520, delay, easing: Easing.outCubic });
+
+  return (
+    <View className={className} style={{ opacity: t, marginTop: lerp(14, 0, t) }}>
+      {children}
+    </View>
+  );
+}
+
 export default function App() {
   const [version, setVersion] = useState("");
   const [url, setUrl] = useState("");
@@ -180,6 +315,8 @@ export default function App() {
   };
 
   const ready = fileName !== "";
+  const [revealed, setRevealed] = useState(false);
+  const [splashGone, setSplashGone] = useState(false);
 
   return (
     <View className="w-full h-full bg-background p-4 gap-3 relative overflow-hidden">
@@ -188,8 +325,10 @@ export default function App() {
         <View key={x} className="absolute top-0 bottom-0 w-px bg-line/30" style={{ left: x }} />
       ))}
 
+      {revealed ? (
+      <>
       {/* Header */}
-      <View className="flex-row items-center gap-3 px-1">
+      <Enter delay={0} className="flex-row items-center gap-3 px-1">
         <EqLogo working={working} />
         <View className="gap-px">
           <View className="flex-row items-center gap-2">
@@ -206,9 +345,10 @@ export default function App() {
         </View>
         <View className="flex-1" />
         <StatusChip message={status.message} tone={status.tone} working={working} />
-      </View>
+      </Enter>
 
       {/* Source card */}
+      <Enter delay={110}>
       <View
         className="rounded-2xl border border-line bg-panel p-4 gap-3"
         style={{ shadowColor: "#00000088", shadowRadius: 22, shadowOffsetY: 8 }}
@@ -254,8 +394,10 @@ export default function App() {
           />
         </View>
       </View>
+      </Enter>
 
       {/* Waveform card */}
+      <Enter delay={220} className="flex-1">
       <View
         className="flex-1 rounded-2xl border border-line bg-panel p-4 gap-3"
         style={{ shadowColor: "#00000088", shadowRadius: 22, shadowOffsetY: 8 }}
@@ -290,14 +432,25 @@ export default function App() {
 
         <NativeView nativeId="waveform" className="flex-1" />
       </View>
+      </Enter>
 
       {/* Footer caption */}
-      <View className="flex-row px-1">
+      <Enter delay={330} className="flex-row px-1">
         <View className="flex-1" />
         <Text className="text-faint text-[9] tracking-widest opacity-70">
           RENDERED NATIVELY BY VSREACT · REACT 18
         </Text>
-      </View>
+      </Enter>
+      </>
+      ) : null}
+
+      {splashGone ? null : (
+        <Splash
+          version={version}
+          onReveal={() => setRevealed(true)}
+          onDone={() => setSplashGone(true)}
+        />
+      )}
     </View>
   );
 }
