@@ -7,7 +7,7 @@ StashTrack is a JUCE audio plug-in that lets you paste a YouTube or other yt-dlp
 Publisher: N9 Records
 Website: https://stashtrack.n9records.com
 Support: vsts@n9records.com
-Version: v0.8
+Version: v0.8.1
 Copyright: Copyright (c) 2026 N9 Records
 License: StashTrack Non-Commercial License v0.1. Free to use, copy, modify, and share for non-commercial purposes only. No commercial use or profit is allowed.
 
@@ -151,8 +151,8 @@ release should also upload a second copy named `StashTrackSetup.exe`; GitHub's
 versionless `releases/latest/download/StashTrackSetup.exe` URL will always
 resolve to the newest release with that asset name.
 
-After rebuilding `dist/StashTrackv0.8Setup.exe`, upload it to GitHub Releases
-both as `StashTrackv0.8Setup.exe` and as `StashTrackSetup.exe`. Future installer
+After rebuilding `dist/StashTrackv0.8.1Setup.exe`, upload it to GitHub Releases
+both as `StashTrackv0.8.1Setup.exe` and as `StashTrackSetup.exe`. Future installer
 version changes should not need a Render deploy as long as the release tag and
 asset filenames keep those patterns.
 
@@ -206,10 +206,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer/windows/build-inst
 The installer is written to:
 
 ```text
-dist/StashTrackv0.8Setup.exe
+dist/StashTrackv0.8.1Setup.exe
 ```
 
-`StashTrackv0.8Setup.exe` installs to the standard system VST3 folder:
+`StashTrackv0.8.1Setup.exe` installs to the standard system VST3 folder:
 
 ```text
 C:\Program Files\Common Files\VST3\StashTrack.vst3

@@ -418,7 +418,7 @@ juce::var YouTubeGrabberAudioProcessorEditor::startDownloadFromJs (const juce::v
 
     pendingDownloadOptions.section = sectionValidation.section;
 
-    downloadedFile = {};
+    downloadedFile = juce::File();
     processorRef.stopPreview();
     stopTimer();
 
