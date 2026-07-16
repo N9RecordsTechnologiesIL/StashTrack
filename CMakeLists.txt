@@ -94,6 +94,18 @@ if (STASHTRACK_ENABLE_REACT_JUCE)
     endif()
 endif()
 
+set(VSREACT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../vsreact"
+    CACHE PATH
+    "Path to the VSReacT framework")
+
+if (EXISTS "${VSREACT_DIR}/CMakeLists.txt")
+    add_subdirectory("${VSREACT_DIR}" vsreact-build)
+    target_link_libraries(StashTrack PRIVATE vsreact)
+    target_compile_definitions(StashTrack PRIVATE STASHTRACK_HAS_VSREACT=1)
+else()
+    message(WARNING "VSReacT not found at ${VSREACT_DIR}; building without it.")
+endif()
+
 find_program(BUN_EXECUTABLE NAMES bun)
 
 if (BUN_EXECUTABLE)
