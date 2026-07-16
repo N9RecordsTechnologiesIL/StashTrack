@@ -574,7 +574,20 @@ void YouTubeGrabberAudioProcessorEditor::updateCheckFinished (StashTrack::Update
 
             if (resultCode == 1)
             {
+#if JUCE_WINDOWS
+                // Windows: download and launch the bundled installer.
                 safeThis->startUpdateInstallerDownload (latest);
+#else
+                // macOS/Linux ship as pkg/tar.gz — send users to the release
+                // page to grab the right asset for their platform.
+                const auto pageUrl = StashTrack::getReleaseChangelogUrl (latest);
+
+                if (pageUrl.isNotEmpty())
+                {
+                    juce::URL (pageUrl).launchInDefaultBrowser();
+                    safeThis->setStatus ("Opened the downloads page for " + latest.versionTag, "accent");
+                }
+#endif
                 return;
             }
 

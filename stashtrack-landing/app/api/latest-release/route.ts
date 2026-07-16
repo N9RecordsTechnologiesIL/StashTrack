@@ -11,6 +11,11 @@ export async function GET() {
     releasePageUrl: release.releasePageUrl,
     installerUrl: release.installerUrl,
     downloadUrl: '/download/windows',
+    platforms: {
+      windows: { ...release.platforms.windows, downloadUrl: '/download/windows' },
+      macos: { ...release.platforms.macos, downloadUrl: '/download/macos' },
+      linux: { ...release.platforms.linux, downloadUrl: '/download/linux' },
+    },
     fallback: release.fallback,
   })
 }

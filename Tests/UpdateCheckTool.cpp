@@ -14,7 +14,7 @@ int main (int argc, char* argv[])
     // Raw fetch with full diagnostics, mirroring createGithubInputStream.
     {
         int statusCode = 0;
-        auto stream = juce::URL ("https://api.github.com/repos/carmanagercompany/StashTrack/releases/latest")
+        auto stream = juce::URL ("https://api.github.com/repos/N9RecordsTechnologiesIL/StashTrack/releases/latest")
             .createInputStream (
                 juce::URL::InputStreamOptions (juce::URL::ParameterHandling::inAddress)
                     .withConnectionTimeoutMs (15000)

@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: carmanagercompany/VSReacT
+          repository: N9RecordsTechnologiesIL/VSReacT
           token: ${{ secrets.VSREACT_CHECKOUT_TOKEN }}
       - uses: actions/checkout@v4
         with:
@@ -59,8 +59,8 @@ jobs:
           $tag = "${{ env.RELEASE_TAG }}"
           $versioned = Get-ChildItem StashTrack/dist/StashTrackv*Setup.exe | Select-Object -First 1
           Copy-Item $versioned.FullName StashTrack/dist/StashTrackSetup.exe -Force
-          gh release create $tag --repo carmanagercompany/StashTrack --title "StashTrack $tag" --notes "Automated multi-platform build." 2>$null
-          gh release upload $tag $versioned.FullName StashTrack/dist/StashTrackSetup.exe --repo carmanagercompany/StashTrack --clobber
+          gh release create $tag --repo N9RecordsTechnologiesIL/StashTrack --title "StashTrack $tag" --notes "Automated multi-platform build." 2>$null
+          gh release upload $tag $versioned.FullName StashTrack/dist/StashTrackSetup.exe --repo N9RecordsTechnologiesIL/StashTrack --clobber
 
   macos-pkg:
     name: macOS pkg
@@ -68,7 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: carmanagercompany/VSReacT
+          repository: N9RecordsTechnologiesIL/VSReacT
           token: ${{ secrets.VSREACT_CHECKOUT_TOKEN }}
       - uses: actions/checkout@v4
         with:
@@ -102,8 +102,8 @@ jobs:
           VST3=$(find build -type d -name "StashTrack.vst3" | head -n 1)
           sh StashTrack/installer/macos/build-pkg.sh "$VST3" "$VERSION" dist
           cp "dist/StashTrackv${VERSION}-macOS.pkg" "dist/StashTrack-macOS.pkg"
-          gh release create "$TAG" --repo carmanagercompany/StashTrack --title "StashTrack $TAG" --notes "Automated multi-platform build." 2>/dev/null || true
-          gh release upload "$TAG" "dist/StashTrackv${VERSION}-macOS.pkg" "dist/StashTrack-macOS.pkg" --repo carmanagercompany/StashTrack --clobber
+          gh release create "$TAG" --repo N9RecordsTechnologiesIL/StashTrack --title "StashTrack $TAG" --notes "Automated multi-platform build." 2>/dev/null || true
+          gh release upload "$TAG" "dist/StashTrackv${VERSION}-macOS.pkg" "dist/StashTrack-macOS.pkg" --repo N9RecordsTechnologiesIL/StashTrack --clobber
 
   linux-tarball:
     name: Linux tarball
@@ -111,7 +111,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: carmanagercompany/VSReacT
+          repository: N9RecordsTechnologiesIL/VSReacT
           token: ${{ secrets.VSREACT_CHECKOUT_TOKEN }}
       - uses: actions/checkout@v4
         with:
@@ -152,5 +152,5 @@ jobs:
           VST3=$(find build -type d -name "StashTrack.vst3" | head -n 1)
           sh StashTrack/installer/linux/build-tarball.sh "$VST3" "$VERSION" dist
           cp "dist/StashTrackv${VERSION}-linux-x86_64.tar.gz" "dist/StashTrack-linux-x86_64.tar.gz"
-          gh release create "$TAG" --repo carmanagercompany/StashTrack --title "StashTrack $TAG" --notes "Automated multi-platform build." 2>/dev/null || true
-          gh release upload "$TAG" "dist/StashTrackv${VERSION}-linux-x86_64.tar.gz" "dist/StashTrack-linux-x86_64.tar.gz" --repo carmanagercompany/StashTrack --clobber
+          gh release create "$TAG" --repo N9RecordsTechnologiesIL/StashTrack --title "StashTrack $TAG" --notes "Automated multi-platform build." 2>/dev/null || true
+          gh release upload "$TAG" "dist/StashTrackv${VERSION}-linux-x86_64.tar.gz" "dist/StashTrack-linux-x86_64.tar.gz" --repo N9RecordsTechnologiesIL/StashTrack --clobber

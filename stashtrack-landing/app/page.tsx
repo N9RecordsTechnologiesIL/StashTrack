@@ -5,6 +5,8 @@ import styles from './page.module.css'
 
 const SUPPORT_EMAIL = 'vsts@n9records.com'
 const DOWNLOAD_URL = '/download/windows'
+const DOWNLOAD_MACOS_URL = '/download/macos'
+const DOWNLOAD_LINUX_URL = '/download/linux'
 
 const bars = Array.from({ length: 84 }, (_, index) => {
   const a = Math.sin(index * 0.47) * 0.5 + 0.5
@@ -20,7 +22,7 @@ const steps = [
 ]
 
 const specs = [
-  ['Format', 'VST3 for Windows'],
+  ['Format', 'VST3 · Windows / macOS / Linux'],
   ['Runtime', 'Bundled yt-dlp, Deno, ffmpeg'],
   ['Output', 'Drag-ready WAV'],
 ]
@@ -107,12 +109,16 @@ export default function Home() {
           </p>
           <div className={styles.actions}>
             <a className={styles.primaryButton} href={DOWNLOAD_URL}>
-              Download StashTrack {versionLabel}
+              Download for Windows {versionLabel}
             </a>
             <a className={styles.secondaryButton} href="#workflow">
               See the workflow
             </a>
           </div>
+          <p className={styles.note}>
+            Also available for <a href={DOWNLOAD_MACOS_URL}>macOS (.pkg)</a> and{' '}
+            <a href={DOWNLOAD_LINUX_URL}>Linux (.tar.gz)</a>.
+          </p>
           <p className={styles.note}>
             Only download content you own, have licensed, or have rights to use.
           </p>
@@ -238,14 +244,43 @@ export default function Home() {
           <li>ffmpeg.exe for decode and trim</li>
           <li>VC++ runtime when missing</li>
         </ul>
+        <div className={styles.sectionIntro}>
+          <h3>Auto-updates</h3>
+          <p>
+            StashTrack checks GitHub when the plugin opens and offers the newest
+            version. On Windows it downloads and runs the installer for you; on
+            macOS and Linux it opens the downloads page for your platform.
+          </p>
+          <h3>macOS and Linux notes</h3>
+          <p>
+            The macOS .pkg installs the VST3 to /Library/Audio/Plug-Ins/VST3.
+            It is currently <strong>unsigned</strong> (no Apple Developer ID
+            yet), so on first install right-click the .pkg and choose Open, or
+            allow it under System Settings → Privacy &amp; Security. Install
+            the runtime tools with <code>brew install yt-dlp ffmpeg</code>.
+          </p>
+          <p>
+            The Linux tarball ships the VST3 with an install script targeting
+            ~/.vst3 — install <code>ffmpeg</code> and <code>yt-dlp</code> from
+            your package manager so they are on PATH.
+          </p>
+        </div>
       </section>
 
       <section id="download" className={styles.finalCta}>
         <p className={styles.kicker}>stashtrack.n9records.com</p>
         <h2>Keep the browser out of the beat.</h2>
-        <a className={styles.primaryButton} href={DOWNLOAD_URL}>
-          Get StashTrack {versionLabel}
-        </a>
+        <div className={styles.actions}>
+          <a className={styles.primaryButton} href={DOWNLOAD_URL}>
+            Windows {versionLabel}
+          </a>
+          <a className={styles.secondaryButton} href={DOWNLOAD_MACOS_URL}>
+            macOS .pkg
+          </a>
+          <a className={styles.secondaryButton} href={DOWNLOAD_LINUX_URL}>
+            Linux .tar.gz
+          </a>
+        </div>
         <p>
           Support: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
         </p>

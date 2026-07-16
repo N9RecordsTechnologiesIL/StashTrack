@@ -67,7 +67,7 @@ Assert-Contains $landingGithubReleaseLib 'releases/latest/download/${STABLE_INST
 Assert-Contains $landingGithubReleaseLib 'StashTrackv.+Setup\.exe' 'Shared release resolver must find versioned StashTrack installer assets.'
 Assert-Contains $landingGithubReleaseLib 'StashTrackSetup.exe' 'Shared release resolver must support a stable latest installer asset name.'
 
-if ($landingPage.Contains('github.com/carmanagercompany/StashTrack/releases/download/v')) {
+if ($landingPage.Contains('github.com/N9RecordsTechnologiesIL/StashTrack/releases/download/v')) {
     throw 'Landing page must not hard-code a versioned GitHub Release installer URL.'
 }
 

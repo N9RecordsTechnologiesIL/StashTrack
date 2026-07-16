@@ -14,7 +14,7 @@ jobs:
       # workspace root (it gitignores StashTrack/), StashTrack nests inside it.
       - uses: actions/checkout@v4
         with:
-          repository: carmanagercompany/VSReacT
+          repository: N9RecordsTechnologiesIL/VSReacT
           token: ${{ secrets.VSREACT_CHECKOUT_TOKEN }}
       - uses: actions/checkout@v4
         with:
