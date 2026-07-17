@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(StashTrack VERSION 0.8.1)
+project(StashTrack VERSION 0.8.2)
 
 # Pull in JUCE. This workspace has JUCE downloaded next to this project at
 # H:/code/VSTs/JUCE, but the cache variable lets other machines point at their

@@ -505,10 +505,13 @@ juce::StringArray buildYtDlpCommand (const juce::String& url,
         command.add ("ejs:npm");
     }
 
+    // bestaudio alone hard-fails on platforms without an audio-only stream
+    // (e.g. TikTok) — fall back to the best combined stream and let
+    // -x/--audio-format extract the audio track (issue #1).
     command.add ("-f");
     command.add (options.section.enabled
-                    ? "best[protocol*=m3u8][height<=360]/best[protocol*=m3u8]/bestaudio"
-                    : "bestaudio");
+                    ? "best[protocol*=m3u8][height<=360]/best[protocol*=m3u8]/bestaudio/best"
+                    : "bestaudio/best");
     command.add ("-x");
     command.add ("--audio-format");
     command.add ("wav");

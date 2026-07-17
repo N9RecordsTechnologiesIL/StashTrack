@@ -30,7 +30,7 @@ app rendered natively (no webview) by the [VSReacT](https://vsreact.n9records.co
 Publisher: N9 Records
 Website: https://stashtrack.n9records.com
 Support: stashtrack-support@n9records.com
-Version: v0.8.1
+Version: v0.8.2
 Copyright: Copyright (c) 2026 N9 Records
 License: StashTrack Non-Commercial License v0.1. Free to use, copy, modify, and share for non-commercial purposes only. No commercial use or profit is allowed.
 

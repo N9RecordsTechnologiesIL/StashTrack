@@ -96,7 +96,8 @@ namespace
         expect (command[command.indexOf ("--from") + 2] == "yt-dlp",
                 "uvx command should run the yt-dlp console command");
         expect (command.contains ("-f"), "command should request an explicit format");
-        expect (command[command.indexOf ("-f") + 1] == "bestaudio", "command should request bestaudio");
+        expect (command[command.indexOf ("-f") + 1] == "bestaudio/best",
+                "command should request bestaudio with a combined-stream fallback (issue #1)");
         expect (command.contains ("-x"), "command should extract audio");
         expect (command[command.indexOf ("--audio-format") + 1] == "wav",
                 "command should convert to wav for JUCE AudioFormatManager compatibility");
@@ -125,8 +126,8 @@ namespace
                 "section downloads should pass yt-dlp's section option");
         expect (command[command.indexOf ("--download-sections") + 1] == "*1:02-1:32.5",
                 "section download should use yt-dlp's *start-end syntax");
-        expect (command[command.indexOf ("-f") + 1] == "best[protocol*=m3u8][height<=360]/best[protocol*=m3u8]/bestaudio",
-                "section downloads should prefer seekable m3u8 segment streams before falling back to bestaudio");
+        expect (command[command.indexOf ("-f") + 1] == "best[protocol*=m3u8][height<=360]/best[protocol*=m3u8]/bestaudio/best",
+                "section downloads should prefer seekable m3u8 streams, then bestaudio, then any best stream (issue #1)");
         expect (! command.contains ("--downloader"),
                 "timed sections automatically use yt-dlp's ffmpeg downloader when needed");
         expect (! command.contains ("--force-keyframes-at-cuts"),
