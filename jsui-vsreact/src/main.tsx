@@ -1,4 +1,10 @@
-import { render, configureTheme } from "@vsreact/core";
+import { render, configureTheme, Text, VERSION } from "@vsreact/core";
+import {
+  posthog,
+  useEditorSession,
+  useScreen,
+  PostHogErrorBoundary,
+} from "@vsreact/posthog";
 import App from "./App";
 
 configureTheme({
@@ -17,4 +23,22 @@ configureTheme({
   },
 });
 
-render(<App />);
+// Product analytics + error tracking (the API key lives in C++; the
+// native PostHogBridge delivers batches off-thread).
+posthog.init({
+  defaultProperties: { plugin: "stashtrack", sdk_version: VERSION },
+});
+
+function AppWithAnalytics() {
+  useEditorSession();
+  useScreen("Main");
+  return <App />;
+}
+
+render(
+  <PostHogErrorBoundary
+    fallback={<Text className="text-text p-6">StashTrack's UI crashed — reopen the window.</Text>}
+  >
+    <AppWithAnalytics />
+  </PostHogErrorBoundary>,
+);

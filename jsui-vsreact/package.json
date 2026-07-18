@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@vsreact/core": "workspace:*",
+    "@vsreact/posthog": "workspace:*",
     "react": "18.3.1"
   },
   "devDependencies": {

@@ -185,6 +185,15 @@ YouTubeGrabberAudioProcessorEditor::YouTubeGrabberAudioProcessorEditor (
 {
     currentDownloadChoice = StashTrack::getDownloadFolderChoice();
 
+    // @vsreact/posthog's native half: the API key stays in C++, batches
+    // post over HTTPS off-thread, the anonymous id persists per machine.
+    vsreact::PostHogBridge::Options analytics;
+    analytics.apiKey = "phc_YOUR_PROJECT_API_KEY";
+    analytics.host = "https://eu.i.posthog.com";
+    analytics.stateFile = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                              .getChildFile ("StashTrack").getChildFile ("posthog-id.txt");
+    posthog = std::make_unique<vsreact::PostHogBridge> (analytics);
+
     vsreact::NativeRegistry registry;
 
     registry.registerFactory ("waveform", [this]() -> std::unique_ptr<juce::Component>
@@ -260,6 +269,9 @@ WaveformFileDragComponent* YouTubeGrabberAudioProcessorEditor::waveformComponent
 juce::var YouTubeGrabberAudioProcessorEditor::handleNativeCall (const juce::String& name,
                                                                 const juce::var& args)
 {
+    if (auto handled = posthog->handleNativeCall (name, args))
+        return *handled;
+
     if (name == "getInitialState")
     {
         auto* state = new juce::DynamicObject();

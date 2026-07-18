@@ -58,6 +58,7 @@ private:
     YouTubeGrabberAudioProcessor& processorRef;
 
     std::unique_ptr<vsreact::RootView> reactRoot;
+    std::unique_ptr<vsreact::PostHogBridge> posthog;
     juce::Component::SafePointer<juce::Component> waveform;
 
     // Shared between the UI thread and the background download thread.
