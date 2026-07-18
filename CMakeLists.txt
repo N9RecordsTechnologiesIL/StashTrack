@@ -78,6 +78,17 @@ target_compile_definitions(StashTrack PRIVATE
     STASHTRACK_HAS_VSREACT=1
     STASHTRACK_VSREACT_BUNDLE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/jsui-vsreact/build/main.js")
 
+# PostHog analytics: the ingestion key is injected at configure time and
+# never lives in the source tree. Empty key = analytics compiled out.
+# Locally:  $env:STASHTRACK_POSTHOG_KEY = "phc_..."   before configuring.
+# CI:       set the STASHTRACK_POSTHOG_KEY actions secret.
+set(STASHTRACK_POSTHOG_KEY "$ENV{STASHTRACK_POSTHOG_KEY}"
+    CACHE STRING
+    "PostHog project API key (client-side ingestion token); empty disables analytics")
+
+target_compile_definitions(StashTrack PRIVATE
+    STASHTRACK_POSTHOG_KEY="${STASHTRACK_POSTHOG_KEY}")
+
 option(STASHTRACK_VSREACT_DEV
        "Load the UI bundle from the source tree and hot-reload it on change (turn OFF for installer builds; embeds the bundle instead)"
        ON)

@@ -47,6 +47,8 @@ jobs:
 
       - name: Build installer
         shell: pwsh
+        env:
+          STASHTRACK_POSTHOG_KEY: ${{ secrets.STASHTRACK_POSTHOG_KEY }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File StashTrack/installer/windows/build-installer.ps1 `
             -Configuration Release -JuceDir "${{ github.workspace }}/JUCE"
@@ -88,6 +90,8 @@ jobs:
           bun run build
 
       - name: Build VST3 (embedded bundle)
+        env:
+          STASHTRACK_POSTHOG_KEY: ${{ secrets.STASHTRACK_POSTHOG_KEY }}
         run: |
           cmake -S StashTrack -B build -DCMAKE_BUILD_TYPE=Release \
             -DJUCE_SOURCE_DIR="${{ github.workspace }}/JUCE" -DSTASHTRACK_VSREACT_DEV=OFF
@@ -138,6 +142,8 @@ jobs:
           bun run build
 
       - name: Build VST3 (embedded bundle)
+        env:
+          STASHTRACK_POSTHOG_KEY: ${{ secrets.STASHTRACK_POSTHOG_KEY }}
         run: |
           cmake -S StashTrack -B build -DCMAKE_BUILD_TYPE=Release \
             -DJUCE_SOURCE_DIR="${{ github.workspace }}/JUCE" -DSTASHTRACK_VSREACT_DEV=OFF

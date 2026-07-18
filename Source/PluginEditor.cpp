@@ -185,14 +185,18 @@ YouTubeGrabberAudioProcessorEditor::YouTubeGrabberAudioProcessorEditor (
 {
     currentDownloadChoice = StashTrack::getDownloadFolderChoice();
 
-    // @vsreact/posthog's native half: the API key stays in C++, batches
-    // post over HTTPS off-thread, the anonymous id persists per machine.
-    vsreact::PostHogBridge::Options analytics;
-    analytics.apiKey = "phc_YOUR_PROJECT_API_KEY";
-    analytics.host = "https://eu.i.posthog.com";
-    analytics.stateFile = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
-                              .getChildFile ("StashTrack").getChildFile ("posthog-id.txt");
-    posthog = std::make_unique<vsreact::PostHogBridge> (analytics);
+    // @vsreact/posthog's native half. The ingestion key is injected at
+    // build time (STASHTRACK_POSTHOG_KEY — see CMakeLists) so it never
+    // lives in the source tree; an empty key disables analytics.
+    if (juce::String (STASHTRACK_POSTHOG_KEY).isNotEmpty())
+    {
+        vsreact::PostHogBridge::Options analytics;
+        analytics.apiKey = STASHTRACK_POSTHOG_KEY;
+        analytics.host = "https://eu.i.posthog.com";
+        analytics.stateFile = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                                  .getChildFile ("StashTrack").getChildFile ("posthog-id.txt");
+        posthog = std::make_unique<vsreact::PostHogBridge> (analytics);
+    }
 
     vsreact::NativeRegistry registry;
 
@@ -269,8 +273,14 @@ WaveformFileDragComponent* YouTubeGrabberAudioProcessorEditor::waveformComponent
 juce::var YouTubeGrabberAudioProcessorEditor::handleNativeCall (const juce::String& name,
                                                                 const juce::var& args)
 {
-    if (auto handled = posthog->handleNativeCall (name, args))
-        return *handled;
+    if (posthog != nullptr)
+        if (auto handled = posthog->handleNativeCall (name, args))
+            return *handled;
+
+    // Without the native bridge, posthog:* calls are silent no-ops so
+    // the JS client keeps working (events just never leave the plugin).
+    if (name.startsWith ("posthog:"))
+        return true;
 
     if (name == "getInitialState")
     {
